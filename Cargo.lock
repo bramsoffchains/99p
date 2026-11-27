@@ -309,11 +309,11 @@ dependencies = [
 
 [[package]]
 name = "p99-bridge"
-version = "0.1.1"
+version = "0.1.2"
 
 [[package]]
 name = "p99-cli"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "p99-core",
  "p99-pcsc",
@@ -321,7 +321,7 @@ dependencies = [
 
 [[package]]
 name = "p99-core"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "aes",
  "chacha20poly1305",
@@ -338,7 +338,7 @@ dependencies = [
 
 [[package]]
 name = "p99-ffi"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "chacha20poly1305",
  "hkdf",
@@ -351,7 +351,7 @@ dependencies = [
 
 [[package]]
 name = "p99-pcsc"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "p99-core",
  "zeroize",
