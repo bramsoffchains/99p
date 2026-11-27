@@ -1,0 +1,6 @@
+module CYkvault [system] {
+    header "../../../crates/ffi/include/ykvault.h"
+    link "ykvault_ffi"
+    link framework "PCSC"
+    export *
+}

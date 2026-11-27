@@ -1,0 +1,27 @@
+[workspace]
+resolver = "3"
+members = ["crates/core", "crates/pcsc", "crates/ffi", "crates/cli", "crates/bridge"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+rust-version = "1.85"
+publish = false
+
+[workspace.dependencies]
+ykvault-pcsc = { path = "crates/pcsc" }
+ykvault-core = { path = "crates/core" }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+# P-256 and the crypto crates are slow unoptimised; keep tests usable.
+[profile.dev.package."*"]
+opt-level = 3
+[profile.test.package."*"]
+opt-level = 3

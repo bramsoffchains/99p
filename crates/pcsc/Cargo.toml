@@ -1,0 +1,12 @@
+[package]
+name = "ykvault-pcsc"
+description = "macOS PCSC.framework transport implementing ykvault_core::SmartCard"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+ykvault-core.workspace = true
+zeroize = { version = "1.9.2", default-features = false }

@@ -1,0 +1,10 @@
+/target
+.DS_Store
+*.xcuserstate
+xcuserdata/
+/macos/build/
+/macos/.build/
+node_modules/
+/macos/BridgeServer/.build/
+/macos/.build-test/
+/macos/BridgeServer/.build-test/

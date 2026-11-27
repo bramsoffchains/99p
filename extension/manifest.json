@@ -1,0 +1,57 @@
+{
+  "manifest_version": 3,
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAitJAsA1CgWpcHzcsyiLqF7VypRle/llC9SPdc7tY3tuxc4r8NaCvLU/XOyuqRL6D+sEVjwe+nZJQvqOtYj6xbsLzjBxBWVCqg8rDbbFY2Boia4FIbmJJwsVqmt8Mlb2mM85Y7H02RtVDYKPnz2NIR9rKIdbr5HIKC6Gz5bVCaVSVNHTwnVRVqPy0wOUB15YtCY1H0SO2NkI69WfawxW0RBQjdJX7SlkyWX5K1atf8xJi1EByll19ECz5k1/KZlb7DqpqMc93+MEWWpB+qqqN6ke4/jl/jDi4MwWk1j3vmXITbB5+84ZbTV3ZfFYfOTkcGMk36bfz9nNrFqvs49+v7wIDAQAB",
+  "name": "99passwords",
+  "version": "1.0.0",
+  "description": "Fills logins from the 99passwords menu bar app. Your vault stays on your YubiKey.",
+  "minimum_chrome_version": "116",
+  "icons": {
+    "16": "icons/16.png",
+    "32": "icons/32.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
+  "background": {
+    "service_worker": "sw.js"
+  },
+  "action": {
+    "default_title": "Fill with 99passwords",
+    "default_icon": {
+      "16": "icons/16.png",
+      "32": "icons/32.png"
+    }
+  },
+  "options_page": "options.html",
+  "permissions": [
+    "nativeMessaging",
+    "activeTab",
+    "scripting",
+    "favicon"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "lib.js",
+        "page.js",
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "commands": {
+    "fill": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+L",
+        "mac": "Command+Shift+L"
+      },
+      "description": "Fill or create a login for this site"
+    }
+  }
+}

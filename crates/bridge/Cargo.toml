@@ -1,0 +1,12 @@
+[package]
+name = "ykvault-bridge"
+description = "Chrome native messaging host relaying to the 99passwords menu bar app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+# Deliberately no dependency on ykvault-core: the bridge never sees vault data
+# beyond the single credential it relays.

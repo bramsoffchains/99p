@@ -1,0 +1,16 @@
+[package]
+name = "ykvault-cli"
+description = "Hardware verification and admin CLI for 99passwords"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "ykvault"
+path = "src/main.rs"
+
+[dependencies]
+ykvault-core.workspace = true
+ykvault-pcsc.workspace = true
