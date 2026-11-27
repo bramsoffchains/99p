@@ -1,0 +1,30 @@
+name: Release
+
+# Push a tag like v0.1.0 to build the app and the extension and publish a
+# GitHub release. Notes come from docs/releases/<tag>.md.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup update stable && rustup default stable
+      - name: Build the app (ad-hoc signed, no Developer ID)
+        run: macos/build-app.sh
+      - name: Package
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          mkdir dist
+          ditto -c -k --keepParent macos/build/99passwords.app "dist/99passwords-$v-macos-arm64.zip"
+          (cd extension && zip -r "../dist/99passwords-extension-$v.zip" . -x 'test/*' 'e2e/*' 'node_modules/*')
+          (cd dist && shasum -a 256 *.zip > SHA256SUMS.txt && cat SHA256SUMS.txt)
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --title "99passwords $GITHUB_REF_NAME" --notes-file "docs/releases/$GITHUB_REF_NAME.md"

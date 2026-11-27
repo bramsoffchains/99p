@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    name: Rust and extension (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup update stable && rustup default stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Playwright for the extension e2e
+        run: npm install --no-save --no-package-lock playwright && npx playwright install --with-deps chromium
+      - run: scripts/check.sh
+
+  macos:
+    name: Swift and app (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup update stable && rustup default stable
+      # Includes ykvault-pcsc; tests that need a real YubiKey are #[ignore]d.
+      - run: scripts/check.sh
+      - run: cargo build -p ykvault-ffi --release --locked
+      - run: scripts/swift-tests.sh
+      - run: macos/build-app.sh

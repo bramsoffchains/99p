@@ -28,8 +28,8 @@ development, since setting it up takes over its PIV application.
 
 ## Checks
 
-There is no hosted CI. Run these locally before opening a pull request and
-paste the summary into the PR description:
+GitHub Actions runs these on every pull request, but run them locally first
+and paste the summary into the PR description:
 
 ```sh
 scripts/check.sh                                      # Linux or macOS

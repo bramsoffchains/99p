@@ -22,6 +22,7 @@ MV3 extension talking to the app through a native messaging bridge.
 | `macos/BridgeServer` | App-side socket server, peer check, message router, native host manifest | Swift |
 | `extension/` | Chrome extension: `sw.js` service worker, `content.js` field UI, `page.js` fill, `lib.js` pure helpers | JS |
 | `scripts/` | `check.sh` (all portable checks), `swift-tests.sh` (macOS) | sh |
+| `.github/workflows/` | `ci.yml` (checks), `release.yml` (tag -> GitHub release) | YAML |
 
 Data flow: Chrome tab -> `extension/sw.js` -> native messaging ->
 `ykvault-bridge` -> Unix socket -> `BridgeServer` in the app -> `VaultKit` ->
@@ -42,9 +43,12 @@ macos/build-app.sh                    # -> macos/build/99passwords.app
 open macos/build/99passwords.app     # needs a YubiKey 5
 ```
 
-There is no hosted CI. Run `scripts/check.sh` before you finish, and the
-macOS commands too if you changed Swift, `crates/pcsc` or `crates/ffi`.
-If you cannot run the macOS part, say so in the PR.
+GitHub Actions (`.github/workflows/ci.yml`) runs these on Linux and macOS
+for every push and PR. Still run `scripts/check.sh` before you finish, and
+the macOS commands too if you changed Swift, `crates/pcsc` or `crates/ffi`;
+if you cannot, the macOS CI job covers them. Releases: add
+`docs/releases/vX.Y.Z.md`, then push the tag `vX.Y.Z`
+(`.github/workflows/release.yml`).
 
 ## Rules
 

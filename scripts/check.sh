@@ -1,5 +1,5 @@
 #!/bin/sh
-# Local checks (replaces GitHub Actions). Run from the repo root: scripts/check.sh
+# Portable checks, run locally and by CI. Run from the repo root: scripts/check.sh
 # macOS-only parts (pcsc, Swift BridgeServer, the app) need a Mac:
 #   cargo test -p ykvault-pcsc && scripts/swift-tests.sh && macos/build-app.sh
 # Swift needs only the Command Line Tools (no Xcode); tests use Swift Testing.

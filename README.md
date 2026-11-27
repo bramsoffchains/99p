@@ -1,5 +1,12 @@
 <p align="center"><img src="docs/logo.png" width="128" alt="99passwords logo"></p>
 
+<p align="center">
+  <a href="https://github.com/bramsoffchains/99p/actions/workflows/ci.yml"><img src="https://github.com/bramsoffchains/99p/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/bramsoffchains/99p/releases/latest"><img src="https://img.shields.io/github/v/release/bramsoffchains/99p" alt="Latest release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+  <img src="https://img.shields.io/badge/platform-macOS%2014%2B-lightgrey.svg" alt="Platform: macOS 14+">
+</p>
+
 # 99passwords
 
 > "I got 99passwords, but a breach ain't one."
@@ -52,12 +59,19 @@ The full technical design is in [`docs/SPEC.md`](docs/SPEC.md).
 
 ## Install
 
-You need a Mac with macOS 14 or later, a YubiKey 5, Rust (stable) and the
-Xcode Command Line Tools. Xcode itself is not needed.
+You need a Mac with macOS 14 or later and a YubiKey 5.
 
 ### 1. The app
 
-Clone this repository, then build and open the app:
+Download `99passwords-…-macos-arm64.zip` from the
+[latest release](https://github.com/bramsoffchains/99p/releases/latest)
+(Apple silicon), unzip it and move `99passwords.app` into Applications. The
+app is not signed with an Apple Developer ID, so the first time macOS blocks
+it: open it once, then click **Open Anyway** in System Settings → Privacy &
+Security. The release notes have the details.
+
+Or build it from source, with Rust (stable) and the Xcode Command Line Tools
+(Xcode itself is not needed):
 
 ```sh
 git clone https://github.com/bramsoffchains/99p.git && cd 99p
@@ -72,8 +86,8 @@ used for certificates): it gets a new PIN and management key that only
 working as before. If you already use PIV certificates on a key, use another
 one.
 
-To have it start with your Mac, drag `macos/build/99passwords.app` into
-Applications and add it in System Settings → General → Login Items.
+To have it start with your Mac, put `99passwords.app` in Applications and add
+it in System Settings → General → Login Items.
 
 ### 2. The Chrome extension
 
@@ -88,7 +102,8 @@ fine without it.
 
 1. Open `chrome://extensions` in Chrome.
 2. Turn on **Developer mode** (top right).
-3. Click **Load unpacked** and pick the `extension` folder of this repository.
+3. Click **Load unpacked** and pick the `extension` folder of this repository,
+   or the unzipped `99passwords-extension-….zip` from the release.
 4. Optional: click the puzzle icon in the toolbar and pin 99passwords.
 
 That's it: the app connects Chrome to your vault by itself every time it
@@ -114,7 +129,7 @@ macos/      the menu bar app (Swift package); BridgeServer/ is the app-side
             socket server for the browser bridge
 extension/  Chrome MV3 extension, vanilla JS, no dependencies
 docs/       SPEC.md: format, crypto, protocol and threat model
-scripts/    local checks
+scripts/    checks (run locally and in CI)
 ```
 
 ## Build and test
@@ -124,7 +139,9 @@ scripts/check.sh                                      # any OS: Rust, C header, 
 cargo test -p ykvault-pcsc && scripts/swift-tests.sh  # macOS only
 ```
 
-There is no hosted CI; contributors run the checks locally. See
+GitHub Actions runs the same checks on every push and pull request (Linux
+and macOS); tests that need a real YubiKey are skipped there. Pushing a `v*`
+tag builds the app and the extension and publishes a release. See
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Contributing and security
