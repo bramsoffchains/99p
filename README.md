@@ -15,6 +15,16 @@ A macOS password manager whose vault lives **only on your YubiKey**. No cloud,
 no account, no vault file on your computer. To unlock it you type your master
 password and touch the key.
 
+## Sneak peek
+
+<p align="center">
+  <img src="docs/screens/unlock.webp" width="49%" alt="Unlock: the 99passwords panel asks you to touch your YubiKey">
+  <img src="docs/screens/browse.webp" width="49%" alt="Browse: the vault item list in the menu bar panel">
+</p>
+<p align="center">
+  <img src="docs/screens/fill.webp" width="98%" alt="Fill: the 99passwords menu in a login field offers the saved login">
+</p>
+
 ## Why
 
 I started this after the recent 1Password breach. It made me ask why I had to
