@@ -18,11 +18,9 @@ password and touch the key.
 ## Sneak peek
 
 <p align="center">
-  <img src="docs/screens/unlock.webp" width="49%" alt="Unlock: the 99passwords panel asks you to touch your YubiKey">
-  <img src="docs/screens/browse.webp" width="49%" alt="Browse: the vault item list in the menu bar panel">
-</p>
-<p align="center">
-  <img src="docs/screens/fill.webp" width="98%" alt="Fill: the 99passwords menu in a login field offers the saved login">
+  <img src="docs/screens/unlock.webp" height="220" alt="Unlock: the 99passwords panel asks you to touch your YubiKey">
+  <img src="docs/screens/browse.webp" height="220" alt="Browse: the vault item list in the menu bar panel">
+  <img src="docs/screens/fill.webp" height="220" alt="Fill: the 99passwords menu in a login field offers the saved login">
 </p>
 
 ## Why
