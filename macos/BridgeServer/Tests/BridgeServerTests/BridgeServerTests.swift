@@ -17,7 +17,7 @@ final class FakeApp: BridgeDelegate {
     }
 }
 
-/// Minimal client playing the role of ykvault-bridge.
+/// Minimal client playing the role of 99p-bridge.
 final class Client {
     let fd: Int32
     init(path: String) throws {
@@ -114,7 +114,7 @@ final class Client {
 
     @Test func testManifest() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        let url = try NativeHostManifest.install(bridgePath: "/Applications/99passwords.app/Contents/MacOS/ykvault-bridge",
+        let url = try NativeHostManifest.install(bridgePath: "/Applications/99passwords.app/Contents/MacOS/99p-bridge",
                                                  extensionIDs: ["abcdefghijklmnopabcdefghijklmnop"], directory: dir)
         XCTAssertEqual(url.lastPathComponent, "app.99passwords.bridge.json")
         let m = try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as! [String: Any]
@@ -126,7 +126,7 @@ final class Client {
 
     @Test func testEndToEnd() throws {
         // sun_path is 104 bytes, so keep the path short.
-        let path = "/tmp/ykvb-\(getpid())/bridge.sock"
+        let path = "/tmp/p99b-\(getpid())/bridge.sock"
         let server = BridgeServer(path: path)
         let app = FakeApp()
         server.delegate = app
@@ -174,7 +174,7 @@ final class Client {
     }
 
     @Test func testUnknownExtensionIsDropped() throws {
-        let path = "/tmp/ykvb-\(getpid())-x/bridge.sock"
+        let path = "/tmp/p99b-\(getpid())-x/bridge.sock"
         let server = BridgeServer(path: path)
         server.delegate = FakeApp()
         server.allowedExtensionIDs = ["abcdefghijklmnopabcdefghijklmnop"]

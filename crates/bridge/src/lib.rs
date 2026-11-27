@@ -1,4 +1,4 @@
-//! `ykvault-bridge` (workstream E): Chrome native messaging (stdin/stdout,
+//! `99p-bridge` (workstream E): Chrome native messaging (stdin/stdout,
 //! native-endian u32 length + JSON) <-> Unix socket to the menu bar app
 //! (little-endian u32 length + JSON). Protocol: `docs/SPEC.md` §12.
 //!

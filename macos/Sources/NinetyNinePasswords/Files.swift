@@ -5,7 +5,7 @@ import UniformTypeIdentifiers
 /// floating panel, so the panel stays open while one has focus.
 @MainActor
 enum Files {
-    static let ykv = UTType(filenameExtension: "ykv") ?? .data
+    static let backup = UTType(filenameExtension: "99p") ?? .data
 
     static var today: String {
         let f = DateFormatter()

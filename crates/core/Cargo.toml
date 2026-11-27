@@ -1,5 +1,5 @@
 [package]
-name = "ykvault-core"
+name = "p99-core"
 description = "Offline vault core for 99passwords: YubiKey PIV storage, crypto, schema, TOTP, generator"
 version.workspace = true
 edition.workspace = true

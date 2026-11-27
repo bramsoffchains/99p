@@ -335,12 +335,12 @@ impl<C: SmartCard> Session<C> {
         self.guard(r)
     }
 
-    /// Encrypted `.ykv` export to every known YubiKey and, optionally, a new
+    /// Encrypted `.99p` export to every known YubiKey and, optionally, a new
     /// recovery key (returned once, for the user to print).
-    pub fn export_ykv(&self, with_recovery_key: bool) -> Result<(Vec<u8>, Option<String>)> {
+    pub fn export_backup(&self, with_recovery_key: bool) -> Result<(Vec<u8>, Option<String>)> {
         let u = self.unlocked()?;
-        crate::ykv::export(
-            &crate::ykv::ExportParams {
+        crate::backup::export(
+            &crate::backup::ExportParams {
                 vault: &u.vault,
                 uuid: u.uuid,
                 revision: u.revision,
@@ -351,9 +351,9 @@ impl<C: SmartCard> Session<C> {
         )
     }
 
-    /// Opens a `.ykv` with this session's card (one touch).
-    pub fn open_ykv(&mut self, file: &[u8], pass: &[u8]) -> Result<Vault> {
-        let r = crate::ykv::open_with_card(&mut self.piv, file, pass);
+    /// Opens a `.99p` with this session's card (one touch).
+    pub fn open_backup(&mut self, file: &[u8], pass: &[u8]) -> Result<Vault> {
+        let r = crate::backup::open_with_card(&mut self.piv, file, pass);
         self.guard(r)
     }
 

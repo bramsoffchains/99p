@@ -1,4 +1,4 @@
-//! `ykvault-bridge`: Chrome starts this as the native messaging host
+//! `99p-bridge`: Chrome starts this as the native messaging host
 //! `app.99passwords.bridge`. It connects to the menu bar app's socket
 //! (launching the app if needed) and relays frames both ways. See SPEC §12.
 
@@ -7,14 +7,14 @@ use std::os::unix::net::UnixStream;
 use std::path::PathBuf;
 use std::process::ExitCode;
 use std::time::{Duration, Instant};
-use ykvault_bridge::{Endian, bridge_hello, caller_origin, error_msg, peer, relay, write_frame};
+use p99_bridge::{Endian, bridge_hello, caller_origin, error_msg, peer, relay, write_frame};
 
 const BUNDLE_ID: &str = "app.99passwords";
 
 fn socket_path() -> PathBuf {
     // Debug builds can point at a test socket; release builds cannot.
     #[cfg(debug_assertions)]
-    if let Some(p) = std::env::var_os("YKV_BRIDGE_SOCK") {
+    if let Some(p) = std::env::var_os("P99_BRIDGE_SOCK") {
         return p.into();
     }
     let home = std::env::var_os("HOME").unwrap_or_default();
@@ -50,7 +50,7 @@ fn connect() -> io::Result<UnixStream> {
 }
 
 fn fail(code: &str, why: impl std::fmt::Display) -> ExitCode {
-    eprintln!("ykvault-bridge: {code}: {why}");
+    eprintln!("99p-bridge: {code}: {why}");
     let _ = write_frame(&mut io::stdout().lock(), Endian::Native, error_msg(code).as_bytes());
     ExitCode::FAILURE
 }
@@ -80,7 +80,7 @@ fn main() -> ExitCode {
         let mut out = io::stdout().lock();
         let r = relay(&mut from_app, Endian::Little, &mut out, Endian::Native);
         if let Err(e) = r {
-            eprintln!("ykvault-bridge: app->chrome: {e}");
+            eprintln!("99p-bridge: app->chrome: {e}");
         }
         let _ = out.flush();
         std::process::exit(0);
@@ -92,7 +92,7 @@ fn main() -> ExitCode {
     match r {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
-            eprintln!("ykvault-bridge: chrome->app: {e}");
+            eprintln!("99p-bridge: chrome->app: {e}");
             ExitCode::FAILURE
         }
     }

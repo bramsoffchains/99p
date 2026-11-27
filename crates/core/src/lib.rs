@@ -1,4 +1,4 @@
-//! ykvault-core: the offline heart of 99passwords.
+//! p99-core: the offline heart of 99passwords.
 //!
 //! Formats and crypto are specified in `docs/SPEC.md`. Layers, bottom up:
 //! `tlv`/`codec` (schema), `payload` (compression and padding), `crypto`,
@@ -11,6 +11,7 @@
 
 #![forbid(unsafe_op_in_unsafe_fn)]
 
+pub mod backup;
 pub mod base32;
 pub mod card;
 pub mod codec;
@@ -33,7 +34,6 @@ pub mod session;
 pub mod store;
 pub mod tlv;
 pub mod totp;
-pub mod ykv;
 
 pub use card::SmartCard;
 pub use error::{Error, Result};

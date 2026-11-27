@@ -27,4 +27,4 @@ extension is never packed with a private key). The app allows that id and writes
 it at launch.
 
 Tests: `node --test extension/test/*.test.js`. End-to-end in Chromium, with the
-real bridge and a fake app: `cargo build -p ykvault-bridge && node extension/e2e/run.js`.
+real bridge and a fake app: `cargo build -p p99-bridge && node extension/e2e/run.js`.

@@ -2,7 +2,7 @@
 // No DOM or chrome.* access here, so it can be unit-tested with `node --test`.
 "use strict";
 
-const YKV = (() => {
+const P99 = (() => {
   const MAX_FAVICON = 8 * 1024;
 
   // Host and origin for a tab URL, or null for anything that is not a web page.
@@ -204,4 +204,4 @@ const YKV = (() => {
     hasMatchRequest, acceptHasMatch, isEntryId, base64, isFaviconPng, MAX_FAVICON };
 })();
 
-if (typeof module !== "undefined") module.exports = YKV;
+if (typeof module !== "undefined") module.exports = P99;

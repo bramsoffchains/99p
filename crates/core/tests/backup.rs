@@ -1,10 +1,10 @@
 mod common;
 use common::*;
 
-use ykvault_core::Error;
-use ykvault_core::mock::MockYubiKey;
-use ykvault_core::piv::Piv;
-use ykvault_core::ykv;
+use p99_core::Error;
+use p99_core::mock::MockYubiKey;
+use p99_core::piv::Piv;
+use p99_core::backup;
 
 #[test]
 fn export_and_import() {
@@ -12,32 +12,32 @@ fn export_and_import() {
     a.upsert(login("GitHub", "github.com", "me")).unwrap();
     let mut backup = MockYubiKey::new(5002);
     a.clone_to(&mut backup, "Backup", None).unwrap();
-    let (file, rk) = a.export_ykv(true).unwrap();
+    let (file, rk) = a.export_backup(true).unwrap();
     let rk = rk.unwrap();
     assert_eq!(rk.len(), 9 * 4 + 8);
     let want = snapshot(&a);
 
     // Recovery key + passphrase, sloppy typing tolerated.
     let typed = rk.to_lowercase().replace('-', " ").replace('0', "o");
-    let v = ykv::open_with_recovery_key(&file, PASS, &typed).unwrap();
+    let v = backup::open_with_recovery_key(&file, PASS, &typed).unwrap();
     assert_eq!(v.entries.len(), want.len());
     assert_eq!(
-        ykv::open_with_recovery_key(&file, b"wrong", &rk).err(),
+        backup::open_with_recovery_key(&file, b"wrong", &rk).err(),
         Some(Error::Decrypt)
     );
     let mut bad = rk.clone().into_bytes();
     bad[0] = if bad[0] == b'A' { b'B' } else { b'A' };
-    assert!(ykv::open_with_recovery_key(&file, PASS, std::str::from_utf8(&bad).unwrap()).is_err());
+    assert!(backup::open_with_recovery_key(&file, PASS, std::str::from_utf8(&bad).unwrap()).is_err());
 
     // Either card + passphrase.
-    let v = ykv::open_with_card(&mut Piv::new(&mut backup), &file, PASS).unwrap();
+    let v = backup::open_with_card(&mut Piv::new(&mut backup), &file, PASS).unwrap();
     assert_eq!(v.entries.len(), want.len());
-    let v2 = a.open_ykv(&file, PASS).unwrap();
+    let v2 = a.open_backup(&file, PASS).unwrap();
     assert_eq!(v2.vault_secret, v.vault_secret);
     // A card that is not a recipient cannot open it.
     let mut stranger = provision(MockYubiKey::new(5003)).into_card();
     assert_eq!(
-        ykv::open_with_card(&mut Piv::new(&mut stranger), &file, PASS).err(),
+        backup::open_with_card(&mut Piv::new(&mut stranger), &file, PASS).err(),
         Some(Error::Decrypt)
     );
 
@@ -46,7 +46,7 @@ fn export_and_import() {
     let last = t.len() - 1;
     t[last] ^= 1;
     assert_eq!(
-        ykv::open_with_recovery_key(&t, PASS, &rk).err(),
+        backup::open_with_recovery_key(&t, PASS, &rk).err(),
         Some(Error::Decrypt)
     );
 

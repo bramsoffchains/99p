@@ -15,7 +15,7 @@ public protocol BridgeDelegate: AnyObject {
     func bridge(hasMatch host: String, reply: @escaping (_ logins: [LoginSummary], _ locked: Bool) -> Void)
 }
 
-/// Unix socket server for `ykvault-bridge` (SPEC §12.1): directory 0700,
+/// Unix socket server for `99p-bridge` (SPEC §12.1): directory 0700,
 /// socket 0600, and every peer must run as our uid.
 public final class BridgeServer {
     public static var defaultPath: String {

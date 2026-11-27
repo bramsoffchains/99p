@@ -1,12 +1,12 @@
 mod common;
 use common::*;
 
-use ykvault_core::Error;
-use ykvault_core::merge::Relation;
-use ykvault_core::mock::MockYubiKey;
-use ykvault_core::model::{Entry, EntryKind, Field, FieldKind};
-use ykvault_core::piv;
-use ykvault_core::session::{ProvisionOptions, Session};
+use p99_core::Error;
+use p99_core::merge::Relation;
+use p99_core::mock::MockYubiKey;
+use p99_core::model::{Entry, EntryKind, Field, FieldKind};
+use p99_core::piv;
+use p99_core::session::{ProvisionOptions, Session};
 
 #[test]
 fn provision_unlock_roundtrip() {
@@ -183,7 +183,7 @@ fn capacity_limit_and_rollback() {
         let mut e = Entry::new(EntryKind::Note, "blob").unwrap();
         e.fields
             .push(Field::new(FieldKind::Note, random_string(60).as_bytes()));
-        let noise: [u8; 64] = ykvault_core::crypto::random_bytes().unwrap();
+        let noise: [u8; 64] = p99_core::crypto::random_bytes().unwrap();
         e.fields.push(Field::new(FieldKind::CustomSecret, &noise));
         match s.upsert(e) {
             Ok(_) => n += 1,
@@ -216,7 +216,7 @@ fn single_bank_mode_holds_more() {
     for _ in 0..40 {
         let mut e = Entry::new(EntryKind::Note, "blob").unwrap();
         let noise: [u8; 700] = std::array::from_fn(|i| {
-            ykvault_core::crypto::random_bytes::<1>().unwrap()[0] ^ i as u8
+            p99_core::crypto::random_bytes::<1>().unwrap()[0] ^ i as u8
         });
         e.fields.push(Field::new(FieldKind::CustomSecret, &noise));
         s.upsert(e).unwrap();
@@ -237,7 +237,7 @@ fn card_nvm_full_reports_capacity() {
 
 #[test]
 fn rollback_relabel_is_rejected() {
-    use ykvault_core::container::{self, BANK_A_TAG, BANK_B_TAG, MANIFEST_TAG, Manifest};
+    use p99_core::container::{self, BANK_A_TAG, BANK_B_TAG, MANIFEST_TAG, Manifest};
     let mut s = provision(MockYubiKey::new(1012));
     s.upsert(login("old", "old.com", "u")).unwrap();
     // Remember the bank image with "old" in it, then save twice more.
@@ -259,7 +259,7 @@ fn rollback_relabel_is_rejected() {
         .revision
         + 10;
     old[24..32].copy_from_slice(&rev.to_le_bytes());
-    let digest = ykvault_core::crypto::sha256(&[&old[..184], &old[216..]]);
+    let digest = p99_core::crypto::sha256(&[&old[..184], &old[216..]]);
     old[184..216].copy_from_slice(&digest);
     let h = container::parse_image(&old).unwrap();
     for (i, c) in container::chunks(&old).enumerate() {

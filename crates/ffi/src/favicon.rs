@@ -6,7 +6,7 @@ use chacha20poly1305::{ChaCha20Poly1305, Nonce};
 use hkdf::Hkdf;
 use hmac::Mac;
 use sha2::Sha256;
-use ykvault_core::{Error, Result, crypto};
+use p99_core::{Error, Result, crypto};
 use zeroize::Zeroizing;
 
 const MAX_PNG: usize = 8 * 1024;

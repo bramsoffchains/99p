@@ -3,7 +3,7 @@
 //! Links `PCSC.framework` directly through hand-declared externs (no `pcsc`
 //! crate, no build script) and provides:
 //! - [`yubikey_readers`]: reader enumeration filtered to YubiKeys,
-//! - [`PcscCard`]: `ykvault_core::SmartCard` over T=1 in shared mode, with
+//! - [`PcscCard`]: `p99_core::SmartCard` over T=1 in shared mode, with
 //!   [`PcscCard::transaction`] around multi-APDU operations,
 //! - [`RemovalWatcher`]: a thread on `SCardGetStatusChange` that calls back
 //!   once when the YubiKey goes away.
