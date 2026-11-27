@@ -33,8 +33,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.onHide = { [weak self] in self?.model.cancelFill(reqId: nil, notify: true) }
         model.showPanel = { [weak self] in self?.panel.present() }
         model.hidePanel = { [weak self] in self?.panel.hide() }
-        // Short while locked, full size once unlocked.
-        sizing = model.$screen.removeDuplicates().sink { [weak self] screen in
+        // Short while locked, full size once unlocked. `$screen` fires before
+        // the value changes; resizing right then redraws the panel with the old
+        // screen and the new (emptied) state, and nothing redraws it after, so
+        // the vault went blank instead of showing the lock screen. Wait a turn.
+        sizing = model.$screen.removeDuplicates().receive(on: RunLoop.main).sink { [weak self] screen in
             self?.panel.fitHeight(FloatingPanel.height(for: screen))
         }
         model.bridge = bridge
