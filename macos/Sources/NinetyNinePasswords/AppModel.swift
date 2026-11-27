@@ -146,6 +146,9 @@ final class AppModel: ObservableObject {
         capacity = nil
         knownKeys = nil
         route = .list
+        // The connection is dead even if the key is still in (another app
+        // reset it), so drop it: refreshCards then reopens a present key.
+        closeSession()
         refreshCards()
         if case .unlocked = screen { screen = .locked }
     }

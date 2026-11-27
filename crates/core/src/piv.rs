@@ -376,6 +376,14 @@ impl<C: SmartCard> Piv<C> {
         }
     }
 
+    /// Clears the card's PIN-verified status (VERIFY with P1 = 0xFF, SP 800-73-4).
+    pub fn reset_pin_status(&mut self) -> Result<()> {
+        match self.transceive([0x00, 0x20, 0xFF, REF_PIN], &[])?.1 {
+            SW_OK => Ok(()),
+            sw => Err(Error::Card { sw, context: "reset PIN status" }),
+        }
+    }
+
     /// Remaining PIN tries, without using one (VERIFY with no data). The
     /// status word holds only 4 bits, so counts above 15 read as 15; fw ≥ 5.3
     /// metadata gives the real number.

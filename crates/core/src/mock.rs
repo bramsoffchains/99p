@@ -251,6 +251,10 @@ impl MockYubiKey {
                 self.mgmt_default = false;
                 Ok(Vec::new())
             }
+            0x20 if p2 == piv::REF_PIN && p1 == 0xFF => {
+                self.pin_verified = false;
+                Ok(Vec::new())
+            }
             0x20 if p2 == piv::REF_PIN => {
                 if d.is_empty() {
                     return match (self.pin_verified, self.pin_tries.1) {
