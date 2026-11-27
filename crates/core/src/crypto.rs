@@ -28,7 +28,7 @@ pub fn sha256(parts: &[&[u8]]) -> [u8; 32] {
     h.finalize().into()
 }
 
-/// `kdf_id` in bank headers and `.ykv` files: `P = HKDF-SHA256(pass, salt)`,
+/// `kdf_id` in bank headers and `.99p` files: `P = HKDF-SHA256(pass, salt)`,
 /// no stretching. The card's PIN counter limits guessing instead (SPEC §5.1).
 pub const KDF_ID: u8 = 2;
 

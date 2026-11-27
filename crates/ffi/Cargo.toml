@@ -1,6 +1,6 @@
 [package]
-name = "ykvault-ffi"
-description = "Plain C ABI over ykvault-core for the SwiftUI app"
+name = "p99-ffi"
+description = "Plain C ABI over p99-core for the SwiftUI app"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -11,8 +11,8 @@ publish.workspace = true
 crate-type = ["staticlib"]
 
 [dependencies]
-ykvault-core.workspace = true
-# Same crates and versions as ykvault-core (no new crates in the tree), used
+p99-core.workspace = true
+# Same crates and versions as p99-core (no new crates in the tree), used
 # for the favicon cache (SPEC §10).
 chacha20poly1305 = { version = "0.11.0", default-features = false, features = ["alloc"] }
 hkdf = "0.13.0"
@@ -21,4 +21,4 @@ sha2 = { version = "0.11.2", default-features = false }
 zeroize = { version = "1.9.2", default-features = false, features = ["alloc"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-ykvault-pcsc.workspace = true
+p99-pcsc.workspace = true

@@ -1,0 +1,6 @@
+module CP99 [system] {
+    header "../../../crates/ffi/include/p99.h"
+    link "p99_ffi"
+    link framework "PCSC"
+    export *
+}

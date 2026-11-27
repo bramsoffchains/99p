@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 tmp=$(mktemp -d)
-YKV_ICON_OUT="$tmp/icon.png" "build/99passwords.app/Contents/MacOS/NinetyNinePasswords"
+P99_ICON_OUT="$tmp/icon.png" "build/99passwords.app/Contents/MacOS/NinetyNinePasswords"
 set_=$tmp/AppIcon.iconset
 mkdir "$set_"
 for s in 16 32 128 256 512; do

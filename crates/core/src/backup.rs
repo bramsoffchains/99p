@@ -1,4 +1,4 @@
-//! Encrypted `.ykv` export and import (SPEC §13.1), wrapped to every known
+//! Encrypted `.99p` export and import (SPEC §13.1), wrapped to every known
 //! YubiKey and optionally to a printable recovery key.
 
 use zeroize::Zeroize;
@@ -109,7 +109,7 @@ fn rk_kek(r: &[u8], p: &[u8], uuid: &[u8; 16]) -> SecretBytes {
     crypto::hkdf32(b"99p/v1/recovery", &[r, p], uuid)
 }
 
-/// Builds a `.ykv` file. Returns the file and, if requested, the recovery
+/// Builds a `.99p` file. Returns the file and, if requested, the recovery
 /// key text, which the app shows once.
 pub fn export(ep: &ExportParams, with_recovery_key: bool) -> Result<(Vec<u8>, Option<String>)> {
     let cards: Vec<_> = ep.vault.known_keys.iter().collect();
@@ -180,12 +180,12 @@ struct Parsed<'a> {
 }
 
 fn parse(f: &[u8]) -> Result<Parsed<'_>> {
-    let bad = Error::Format(".ykv file");
+    let bad = Error::Format(".99p file");
     if f.len() < PREFIX_LEN || &f[..4] != b"99PX" {
         return Err(bad);
     }
     if u16::from_le_bytes([f[4], f[5]]) != 1 || f[32] != crypto::KDF_ID || f[33..44].iter().any(|&x| x != 0) {
-        return Err(Error::Unsupported(".ykv version"));
+        return Err(Error::Unsupported(".99p version"));
     }
     let u32_at = |o: usize| u32::from_le_bytes(f[o..o + 4].try_into().unwrap());
     let n = f[60] as usize;
@@ -225,7 +225,7 @@ fn finish(p: &Parsed, dek: &SecretBytes) -> Result<Vault> {
     codec::decode_vault(body.as_slice())
 }
 
-/// Opens a `.ykv` with the passphrase and the printed recovery key.
+/// Opens a `.99p` with the passphrase and the printed recovery key.
 pub fn open_with_recovery_key(file: &[u8], pass: &[u8], recovery_key: &str) -> Result<Vault> {
     let p = parse(file)?;
     let r = parse_recovery_key(recovery_key)?;
@@ -240,7 +240,7 @@ pub fn open_with_recovery_key(file: &[u8], pass: &[u8], recovery_key: &str) -> R
     finish(&p, &dek)
 }
 
-/// Opens a `.ykv` with the passphrase and an inserted YubiKey (one touch).
+/// Opens a `.99p` with the passphrase and an inserted YubiKey (one touch).
 pub fn open_with_card<C: SmartCard>(piv: &mut Piv<C>, file: &[u8], pass: &[u8]) -> Result<Vault> {
     let p = parse(file)?;
     piv.select()?;

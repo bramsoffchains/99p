@@ -1,12 +1,12 @@
 import AppKit
 import SwiftUI
 
-/// Developer aid: renders the menu bar icon (`YKV_STATUS_OUT`) or the app
-/// icon artwork (`YKV_ICON_OUT`, used by make-icon.sh) to a PNG and quits.
+/// Developer aid: renders the menu bar icon (`P99_STATUS_OUT`) or the app
+/// icon artwork (`P99_ICON_OUT`, used by make-icon.sh) to a PNG and quits.
 @MainActor
 enum DevSnapshot {
     static func run() {
-        if let out = ProcessInfo.processInfo.environment["YKV_STATUS_OUT"] {
+        if let out = ProcessInfo.processInfo.environment["P99_STATUS_OUT"] {
             // The menu bar icon at 8x, black on white, for checking it.
             let img = StatusIcon.image()
             let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 144, pixelsHigh: 144, bitsPerSample: 8,
@@ -22,7 +22,7 @@ enum DevSnapshot {
             NSApp.terminate(nil)
             return
         }
-        if let out = ProcessInfo.processInfo.environment["YKV_ICON_OUT"] {
+        if let out = ProcessInfo.processInfo.environment["P99_ICON_OUT"] {
             // Renders the app icon artwork (used by macos/make-icon.sh).
             let r = ImageRenderer(content: AppIconArt())
             r.scale = 1

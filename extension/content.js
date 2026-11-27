@@ -5,12 +5,12 @@
 "use strict";
 
 (() => {
-  if (window.top !== window || globalThis.__ykvContent) return;
-  globalThis.__ykvContent = true;
+  if (window.top !== window || globalThis.__p99Content) return;
+  globalThis.__p99Content = true;
   const send = msg => chrome.runtime.sendMessage(msg).catch(() => null);
   const ask = (entryId, mode) => {
     hide();
-    const msg = { type: "ykv_fill" };
+    const msg = { type: "p99_fill" };
     if (entryId) msg.entry_id = entryId;
     if (mode) msg.mode = mode;
     send(msg);
@@ -97,8 +97,8 @@
     if (!e.isTrusted || !field) return;
     if (locked) return ask();
     const el = field;
-    const { hasPassword } = __ykv.roleOf(el);
-    const r = (await send({ type: "ykv_has_match" })) || {};
+    const { hasPassword } = __p99.roleOf(el);
+    const r = (await send({ type: "p99_has_match" })) || {};
     if (field !== el) return;
     if (r.locked) { setLocked(true); return ask(); }
     dismissed = false;
@@ -172,15 +172,15 @@
 
   document.addEventListener("focusin", async e => {
     const el = e.target;
-    if (!(el instanceof HTMLInputElement) || !globalThis.__ykv) return;
-    const { mode, unsure, hasPassword, role } = __ykv.roleOf(el);
+    if (!(el instanceof HTMLInputElement) || !globalThis.__p99) return;
+    const { mode, unsure, hasPassword, role } = __p99.roleOf(el);
     if (!role) return;
     field = el;
     if (!host.isConnected) document.documentElement.append(host);
     place();
     btn.style.display = "flex";
     menu.style.display = "none";
-    const match = send({ type: "ykv_has_match" });
+    const match = send({ type: "p99_has_match" });
     match.then(r => { if (field === el && r) setLocked(!!r.locked); });
     if (dismissed) return;
     if (mode === "signup" && role !== "otp") return offer([GENERATE]);
@@ -202,14 +202,14 @@
   const menuOpen = () => menu.style.display !== "none";
   document.addEventListener("mouseover", async e => {
     const el = e.target;
-    if (!(el instanceof HTMLInputElement) || el === field || !globalThis.__ykv) return;
+    if (!(el instanceof HTMLInputElement) || el === field || !globalThis.__p99) return;
     if (field && (document.activeElement === field || menuOpen())) return; // keep the focused field's icon
-    if (!__ykv.roleOf(el).role) return;
+    if (!__p99.roleOf(el).role) return;
     field = el;
     if (!host.isConnected) document.documentElement.append(host);
     place();
     btn.style.display = "flex";
-    const r = await send({ type: "ykv_has_match" });
+    const r = await send({ type: "p99_has_match" });
     if (field === el && r) setLocked(!!r.locked);
   }, true);
   document.addEventListener("mouseout", e => {

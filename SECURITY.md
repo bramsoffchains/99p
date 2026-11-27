@@ -48,5 +48,5 @@ Out of scope (documented trade-offs, see SPEC §14):
 
 ## Handling secrets in reports
 
-Never send a real vault, `.ykv` file, master password or YubiKey you care
+Never send a real vault, `.99p` file, master password or YubiKey you care
 about. Reproduce with `MockYubiKey` in a test or with a spare YubiKey.

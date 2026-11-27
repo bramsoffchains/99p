@@ -5,9 +5,9 @@
 mod common;
 use common::*;
 
-use ykvault_core::mock::MockYubiKey;
-use ykvault_core::model::{Entry, EntryKind, Field, FieldKind};
-use ykvault_core::Error;
+use p99_core::mock::MockYubiKey;
+use p99_core::model::{Entry, EntryKind, Field, FieldKind};
+use p99_core::Error;
 
 const SITES: &[&str] = &[
     "github.com",
@@ -44,7 +44,7 @@ const WORDS: &[&str] = &[
 ];
 
 fn rnd(n: usize) -> usize {
-    let b: [u8; 4] = ykvault_core::crypto::random_bytes().unwrap();
+    let b: [u8; 4] = p99_core::crypto::random_bytes().unwrap();
     u32::from_le_bytes(b) as usize % n
 }
 
@@ -59,7 +59,7 @@ fn host(i: usize) -> String {
 
 fn totp() -> Field {
     let mut v = vec![0u8, 0u8];
-    v.extend_from_slice(&ykvault_core::crypto::random_bytes::<20>().unwrap());
+    v.extend_from_slice(&p99_core::crypto::random_bytes::<20>().unwrap());
     Field::new(FieldKind::Totp, &v)
 }
 

@@ -5,11 +5,11 @@
 mod common;
 use common::*;
 
-use ykvault_core::codec;
-use ykvault_core::container;
-use ykvault_core::mock::MockYubiKey;
-use ykvault_core::model::{Entry, Field, FieldKind, Vault};
-use ykvault_core::payload;
+use p99_core::codec;
+use p99_core::container;
+use p99_core::mock::MockYubiKey;
+use p99_core::model::{Entry, Field, FieldKind, Vault};
+use p99_core::payload;
 
 const SITES: &[&str] = &[
     "github.com",
@@ -54,7 +54,7 @@ fn entries(n: usize) -> Vec<Entry> {
             );
             if i % 5 == 0 {
                 let mut v = vec![0u8, 0u8];
-                v.extend_from_slice(&ykvault_core::crypto::random_bytes::<20>().unwrap());
+                v.extend_from_slice(&p99_core::crypto::random_bytes::<20>().unwrap());
                 e.fields.push(Field::new(FieldKind::Totp, &v));
             }
             e.created_at = 1_700_000_000 + i as u32;
@@ -102,7 +102,7 @@ fn five_hundred_entries() {
     // compresses better), otherwise the explicit single-bank opt-in.
     match s.upsert_many(all.clone()) {
         Ok(()) => println!("500 imported entries saved in A/B mode"),
-        Err(ykvault_core::Error::Capacity { .. }) => {
+        Err(p99_core::Error::Capacity { .. }) => {
             let mut st = base.settings.clone();
             st.single_bank = true;
             s.update_settings(st).unwrap();

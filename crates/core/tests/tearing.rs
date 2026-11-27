@@ -4,9 +4,9 @@
 mod common;
 use common::*;
 
-use ykvault_core::Error;
-use ykvault_core::mock::{ALL_TEARS, MockYubiKey};
-use ykvault_core::model::{Entry, EntryKind, Field, FieldKind};
+use p99_core::Error;
+use p99_core::mock::{ALL_TEARS, MockYubiKey};
+use p99_core::model::{Entry, EntryKind, Field, FieldKind};
 
 /// A vault of about 10 KB of ciphertext, so a save spans several chunks.
 fn big_vault(single_bank: bool, extra_saves: usize) -> MockYubiKey {
@@ -18,7 +18,7 @@ fn big_vault(single_bank: bool, extra_saves: usize) -> MockYubiKey {
     }
     let mut e = Entry::new(EntryKind::Note, "noise").unwrap();
     let noise: Vec<u8> = (0..9000)
-        .map(|_| ykvault_core::crypto::random_bytes::<1>().unwrap()[0])
+        .map(|_| p99_core::crypto::random_bytes::<1>().unwrap()[0])
         .collect();
     e.fields.push(Field::new(FieldKind::CustomSecret, &noise));
     s.upsert(e).unwrap();
@@ -49,7 +49,7 @@ fn run_matrix(single_bank: bool, extra_saves: usize) -> usize {
             let mut card = s.into_card();
             let fired = card.tear_fired();
             card.replug();
-            let mut s = ykvault_core::Session::open(card).unwrap();
+            let mut s = p99_core::Session::open(card).unwrap();
             match s.unlock(PASS) {
                 Ok(()) => {
                     let got = snapshot(&s);
@@ -60,7 +60,7 @@ fn run_matrix(single_bank: bool, extra_saves: usize) -> usize {
                     }
                     // The card stays writable after recovery.
                     s.upsert(login("after", "after.com", "u")).unwrap();
-                    ykvault_core::Session::open(s.into_card())
+                    p99_core::Session::open(s.into_card())
                         .unwrap()
                         .unlock(PASS)
                         .unwrap();
@@ -99,7 +99,7 @@ fn single_bank_tears_are_detected_not_mixed() {
 
 #[test]
 fn torn_manifest_falls_back_to_scan() {
-    use ykvault_core::container::MANIFEST_TAG;
+    use p99_core::container::MANIFEST_TAG;
     let mut card = big_vault(false, 0);
     let before = snapshot(&unlock(card.clone()));
     card.objects.insert(MANIFEST_TAG, vec![0xAB; 40]);

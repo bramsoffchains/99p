@@ -1,7 +1,7 @@
 #!/bin/sh
 # Portable checks, run locally and by CI. Run from the repo root: scripts/check.sh
 # macOS-only parts (pcsc, Swift BridgeServer, the app) need a Mac:
-#   cargo test -p ykvault-pcsc && scripts/swift-tests.sh && macos/build-app.sh
+#   cargo test -p p99-pcsc && scripts/swift-tests.sh && macos/build-app.sh
 # Swift needs only the Command Line Tools (no Xcode); tests use Swift Testing.
 set -eu
 
@@ -12,7 +12,7 @@ echo "== C header matches the FFI staticlib"
 extra=""; [ "$(uname)" = Darwin ] && extra="-framework PCSC"
 # shellcheck disable=SC2086
 cc -Wall -Wextra -Werror -I crates/ffi/include crates/ffi/tests/smoke.c \
-  target/debug/libykvault_ffi.a -lpthread -ldl -lm $extra -o target/ffi-smoke
+  target/debug/libp99_ffi.a -lpthread -ldl -lm $extra -o target/ffi-smoke
 ./target/ffi-smoke
 
 echo "== Offline, minimal dependency policy (SPEC §1)"

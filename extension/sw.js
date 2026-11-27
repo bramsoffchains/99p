@@ -54,7 +54,7 @@ async function favicon(pageUrl) {
     const canvas = new OffscreenCanvas(32, 32);
     canvas.getContext("2d").drawImage(img, 0, 0, 32, 32);
     const bytes = new Uint8Array(await (await canvas.convertToBlob({ type: "image/png" })).arrayBuffer());
-    return YKV.isFaviconPng(bytes) ? YKV.base64(bytes) : null;
+    return P99.isFaviconPng(bytes) ? P99.base64(bytes) : null;
   } catch {
     return null;
   }
@@ -71,24 +71,24 @@ const busy = new Set(); // one request per tab at a time
 
 // force: undefined, "signup" (field menu: generate) or "save" (save typed login).
 async function startFill(tab, entryId, force) {
-  const site = tab && YKV.siteFromUrl(tab.url);
+  const site = tab && P99.siteFromUrl(tab.url);
   if (!site || busy.has(tab.id)) return;
   busy.add(tab.id);
   try {
     let probe = { mode: "login", username: null };
-    try { probe = (await inject(tab.id, f => __ykv.probe(f), [force || null])) || probe; } catch { /* no access: still ask */ }
+    try { probe = (await inject(tab.id, f => __p99.probe(f), [force || null])) || probe; } catch { /* no access: still ask */ }
     const reqId = crypto.randomUUID();
-    const reply = await request(YKV.fillRequest(reqId, probe.mode, site, probe.username, await favicon(tab.url), entryId, probe.password));
+    const reply = await request(P99.fillRequest(reqId, probe.mode, site, probe.username, await favicon(tab.url), entryId, probe.password));
     probe.password = null;
-    if (!YKV.acceptFill(reply, reqId, site.host)) {
+    if (!P99.acceptFill(reply, reqId, site.host)) {
       if (reply && reply.type === "error") console.warn("99passwords:", reply.code);
       return;
     }
     // The tab may have navigated while the panel was open.
     const now = await chrome.tabs.get(tab.id);
-    const still = YKV.siteFromUrl(now.url);
+    const still = P99.siteFromUrl(now.url);
     if (still && still.origin === site.origin) {
-      await inject(tab.id, (c, o) => __ykv.fill(c, o),
+      await inject(tab.id, (c, o) => __p99.fill(c, o),
         [{ username: reply.username || null, password: reply.password || null, totp: reply.totp || null,
           identity: reply.identity || null, signup: probe.mode === "signup" }, site.origin]);
     }
@@ -129,7 +129,7 @@ async function hasMatch(host, fresh) {
   const hit = matchCache.get(host);
   if (!fresh && hit && Date.now() - hit.at < 5000) return hit.result;
   const reqId = crypto.randomUUID();
-  const result = YKV.acceptHasMatch(await request(YKV.hasMatchRequest(reqId, host), MATCH_TIMEOUT_MS), reqId);
+  const result = P99.acceptHasMatch(await request(P99.hasMatchRequest(reqId, host), MATCH_TIMEOUT_MS), reqId);
   matchCache.set(host, { at: Date.now(), result });
   return result;
 }
@@ -148,12 +148,12 @@ async function setDot(tabId, on) {
 async function checkTab(tabId, fresh = false) {
   let tab;
   try { tab = await chrome.tabs.get(tabId); } catch { return { match: false, locked: false }; }
-  const site = YKV.siteFromUrl(tab.url);
+  const site = P99.siteFromUrl(tab.url);
   if (!site) { setDot(tabId, false); return { match: false, locked: false }; }
   const r = await hasMatch(site.host, fresh);
   // Only paint if the tab is still on that site.
   const now = await chrome.tabs.get(tabId).catch(() => null);
-  const still = now && YKV.siteFromUrl(now.url);
+  const still = now && P99.siteFromUrl(now.url);
   if (still && still.host === site.host) setDot(tabId, r.match);
   return r;
 }
@@ -175,11 +175,11 @@ chrome.commands.onCommand.addListener((cmd, tab) => { if (cmd === "fill") startF
 // From content.js in the top frame: the host always comes from sender.tab.url.
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (sender.id !== chrome.runtime.id || !sender.tab || sender.frameId !== 0 || !msg) return;
-  if (msg.type === "ykv_fill") {
-    startFill(sender.tab, YKV.isEntryId(msg.entry_id) ? msg.entry_id : undefined,
+  if (msg.type === "p99_fill") {
+    startFill(sender.tab, P99.isEntryId(msg.entry_id) ? msg.entry_id : undefined,
       ["signup", "save"].includes(msg.mode) ? msg.mode : undefined);
   }
-  if (msg.type === "ykv_has_match") {
+  if (msg.type === "p99_has_match") {
     checkTab(sender.tab.id).then(r => sendResponse({ match: r.match, locked: r.locked, logins: r.logins || [] }));
     return true;
   }

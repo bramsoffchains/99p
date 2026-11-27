@@ -10,8 +10,8 @@ rust-version = "1.85"
 publish = false
 
 [workspace.dependencies]
-ykvault-pcsc = { path = "crates/pcsc" }
-ykvault-core = { path = "crates/core" }
+p99-pcsc = { path = "crates/pcsc" }
+p99-core = { path = "crates/core" }
 
 [profile.release]
 opt-level = 3

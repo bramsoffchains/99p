@@ -24,7 +24,7 @@ struct SettingsView: View {
     @EnvironmentObject var model: AppModel
     @Local private var intent: TransferIntent?
     @AppStorage(AppModel.autoLockKey) private var autoLock = 5
-    // Encrypted .ykv
+    // Encrypted .99p
     @Local private var withRecovery = false
     @Local private var recoveryKey: String?
     @Local private var importURL: URL?
@@ -103,7 +103,7 @@ struct SettingsView: View {
         }
         group("Bring passwords in") {
             IntentRow(icon: "clock.arrow.circlepath", title: "Restore a backup file",
-                      detail: "Merge a .ykv backup into this vault.") { intent = .restoreFile }
+                      detail: "Merge a .99p backup into this vault.") { intent = .restoreFile }
             Divider()
             IntentRow(icon: "square.and.arrow.down", title: "Import from another app",
                       detail: "From 1Password, Bitwarden or Chrome (CSV), or a 99passwords JSON file.") { intent = .importOther }
@@ -153,7 +153,7 @@ struct SettingsView: View {
     // MARK: pages
 
     @ViewBuilder var saveFile: some View {
-        Text("A .ykv file that only your YubiKeys and master password can open. It is fine to keep in cloud storage.")
+        Text("A .99p file that only your YubiKeys and master password can open. It is fine to keep in cloud storage.")
             .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         if let rk = recoveryKey {
             recoveryCard(rk)
@@ -166,7 +166,7 @@ struct SettingsView: View {
                 }
             }
             .toggleStyle(.checkbox)
-            Button { Task { recoveryKey = await model.exportYkv(withRecoveryKey: withRecovery) } } label: {
+            Button { Task { recoveryKey = await model.exportBackup(withRecoveryKey: withRecovery) } } label: {
                 HStack(spacing: 8) {
                     if model.busy { ProgressView().controlSize(.small).tint(Brand.navy) }
                     Label("Save backup file…", systemImage: "square.and.arrow.down.on.square")
@@ -183,7 +183,7 @@ struct SettingsView: View {
         if let url = importURL {
             importForm(url)
         } else {
-            Button { Task { if let u = await Files.open(types: [Files.ykv]) { importURL = u } } } label: {
+            Button { Task { if let u = await Files.open(types: [Files.backup]) { importURL = u } } } label: {
                 Label("Choose backup file…", systemImage: "doc")
             }
             .buttonStyle(PillButtonStyle(fullWidth: true))
@@ -280,7 +280,7 @@ struct SettingsView: View {
                 Button("Import") {
                     Task {
                         let rk = useRecovery ? importRK : nil
-                        if await model.importYkv(url, passphrase: importPass, recoveryKey: rk) { resetImport() }
+                        if await model.importBackup(url, passphrase: importPass, recoveryKey: rk) { resetImport() }
                         importPass = ""
                     }
                 }

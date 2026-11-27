@@ -1,6 +1,6 @@
-// End-to-end in real Chromium: extension -> native messaging -> ykvault-bridge
+// End-to-end in real Chromium: extension -> native messaging -> 99p-bridge
 // -> Unix socket -> fake app -> fill back into the page.
-// Usage: cargo build -p ykvault-bridge && node extension/e2e/run.js
+// Usage: cargo build -p p99-bridge && node extension/e2e/run.js
 "use strict";
 const fs = require("node:fs");
 const os = require("node:os");
@@ -11,7 +11,7 @@ const { chromium } = require("playwright");
 const { startFakeApp } = require("./fake-app.js");
 
 const ROOT = path.resolve(__dirname, "../..");
-const BRIDGE = path.join(ROOT, "target/debug/ykvault-bridge");
+const BRIDGE = path.join(ROOT, "target/debug/99p-bridge");
 const EXT_ID = "bjppeeoihhidakjbpmbpmhcddcebiieg"; // fixed by the test key below
 
 const PAGES = {
@@ -26,7 +26,7 @@ const PAGES = {
 };
 
 async function main() {
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ykv-e2e-"));
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "p99-e2e-"));
   const sock = path.join(tmp, "bridge.sock");
 
   // Copy the extension with a fixed key (stable id) and host access for the test.
@@ -42,7 +42,7 @@ async function main() {
   const profile = path.join(tmp, "profile");
   fs.mkdirSync(path.join(profile, "NativeMessagingHosts"), { recursive: true });
   const wrapper = path.join(tmp, "bridge.sh");
-  fs.writeFileSync(wrapper, `#!/bin/sh\nYKV_BRIDGE_SOCK='${sock}' exec '${BRIDGE}' "$@"\n`, { mode: 0o755 });
+  fs.writeFileSync(wrapper, `#!/bin/sh\nP99_BRIDGE_SOCK='${sock}' exec '${BRIDGE}' "$@"\n`, { mode: 0o755 });
   fs.writeFileSync(path.join(profile, "NativeMessagingHosts/app.99passwords.bridge.json"), JSON.stringify({
     name: "app.99passwords.bridge", description: "99passwords bridge", path: wrapper, type: "stdio",
     allowed_origins: [`chrome-extension://${EXT_ID}/`],
@@ -177,7 +177,7 @@ async function main() {
     await page.mouse.move(lb.l + 5, lb.y);
     await page.mouse.move(lb.r - 15, lb.y, { steps: 5 });
     await page.waitForTimeout(300); // has_match round trip turns it into the pill
-    if (process.env.YKV_SHOT) await page.screenshot({ path: process.env.YKV_SHOT, clip: { x: 0, y: 0, width: 700, height: 110 } });
+    if (process.env.P99_SHOT) await page.screenshot({ path: process.env.P99_SHOT, clip: { x: 0, y: 0, width: 700, height: 110 } });
     await page.mouse.click(lb.r - 15, lb.y);
     await page.waitForFunction(() => document.querySelector("input[name=pw]").value === "hunter2");
     locked = false;

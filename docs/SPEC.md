@@ -17,7 +17,7 @@ and management key · 9 Save, load, tearing, clones · 10 Favicon cache ·
 
 ## 1. Principles
 
-- The vault exists only on YubiKeys (and in optional user-initiated `.ykv`
+- The vault exists only on YubiKeys (and in optional user-initiated `.99p`
   exports). Nothing else persists on disk except: the encrypted favicon cache
   (§10), the Chrome native-messaging host manifest (no secrets, §12.1), and app
   preferences that contain no vault data (window position, chosen reader).
@@ -342,7 +342,7 @@ around every multi-APDU operation, `SCardTransmit`, `SCardDisconnect`,
 app through a callback). Note: on macOS `DWORD` is `u32`. Reader filter: name
 contains "YubiKey" and the PIV SELECT succeeds.
 
-API (`ykvault-pcsc`): `yubikey_readers()`, `PcscCard::open(Option<&str>)`,
+API (`p99-pcsc`): `yubikey_readers()`, `PcscCard::open(Option<&str>)`,
 `PcscCard::transaction(|card| ...)` (begins the transaction and re-selects PIV,
 since another app may have selected a different applet in between),
 `PcscCard::watch_removal(callback)` returning a `RemovalWatcher` (dropping it
@@ -365,7 +365,7 @@ management key authentication.
    be the user's). The UI may offer another retired slot (82..95).
 4. **PIN and PUK** must be the factory defaults (metadata `05` on fw ≥ 5.3;
    otherwise the default PIN must verify). If not, stop: the user resets PIV
-   (`ykvault piv-reset <serial>`) or uses another key.
+   (`99p piv-reset <serial>`) or uses another key.
 5. Create the salt; derive `P` and `PIN`.
 6. Authenticate the management key, VERIFY `123456`, SET PIN RETRIES 255 / 1
    (this resets PIN and PUK to the defaults, which is why it comes first),
@@ -487,29 +487,29 @@ when they were written, which is acceptable.
 
 ## 11. FFI (plain C ABI)
 
-- Header: `crates/ffi/include/ykvault.h` (hand-written, draft). Opaque
-  `YkvSession*`; every call returns `YkvStatus`; outputs are `YkvBuf`, owned by
-  Rust and freed with `ykv_buf_free` (which zeroizes).
+- Header: `crates/ffi/include/p99.h` (hand-written, draft). Opaque
+  `P99Session*`; every call returns `P99Status`; outputs are `P99Buf`, owned by
+  Rust and freed with `p99_buf_free` (which zeroizes).
 - Every entry point wraps its body in `catch_unwind` and returns
-  `YKV_ERR_PANIC` instead of unwinding into Swift. Release builds use
+  `P99_ERR_PANIC` instead of unwinding into Swift. Release builds use
   `panic = "abort"`, so this is defence in depth.
 - Structured, non-secret data (entry lists, capacity, card list) is returned as
   JSON written by a ~100-line encoder in the FFI crate (no serde). Secrets are
-  only returned one at a time (`ykv_reveal_field`, `ykv_totp_now`), so the app
+  only returned one at a time (`p99_reveal_field`, `p99_totp_now`), so the app
   never holds the whole decrypted vault.
 - Blocking calls (unlock waits for a touch, saves take about 1 s of APDUs) are
   made by the app on a background queue. A session is not thread-safe; the app
   serialises access.
-- Removal events: `ykv_set_removal_callback(fn(void *ctx, const char *reader))`
+- Removal events: `p99_set_removal_callback(fn(void *ctx, const char *reader))`
   locks the session before it calls back.
-- `ykv_set_touch_callback` fires inside `ykv_unlock` after the PIN check, right before the ECDH that waits for a touch, so the UI can
-  prompt at the right moment. `ykv_unlock` returns `YKV_ERR_WRONG_PIN` for a
-  wrong passphrase and `YKV_ERR_PIN_BLOCKED` once tries run out;
-  `ykv_pin_tries` reads the count without using one. `ykv_provision` creates a vault (§8.1) and returns an unlocked
-  session. `ykv_mock_enable` / `ykv_mock_set_present` drive in-memory cards
+- `p99_set_touch_callback` fires inside `p99_unlock` after the PIN check, right before the ECDH that waits for a touch, so the UI can
+  prompt at the right moment. `p99_unlock` returns `P99_ERR_WRONG_PIN` for a
+  wrong passphrase and `P99_ERR_PIN_BLOCKED` once tries run out;
+  `p99_pin_tries` reads the count without using one. `p99_provision` creates a vault (§8.1) and returns an unlocked
+  session. `p99_mock_enable` / `p99_mock_set_present` drive in-memory cards
   for development and UI tests; they never touch real hardware.
 
-### 11.3 Entry JSON (`ykv_upsert_entry`)
+### 11.3 Entry JSON (`p99_upsert_entry`)
 
 ```
 {"id":"123" (optional; absent or null creates a new entry),
@@ -525,15 +525,15 @@ string because it is a full u64. Hosts are lowercased and deduplicated. A
 TOTP value is a base32 secret with default parameters (SHA-1, 6 digits,
 30 s). The fields array replaces the entry's fields, so the app reveals
 the old values before editing. Username, CardHolder, CardExpiry and
-CustomText are not secret and appear in `ykv_list_entries`; every other
-kind only through `ykv_reveal_field`.
+CustomText are not secret and appear in `p99_list_entries`; every other
+kind only through `p99_reveal_field`.
 
 ## 12. Browser bridge
 
 ### 12.1 Topology
 
 ```
-Chrome MV3 extension --native messaging--> ykvault-bridge --Unix socket--> menu bar app
+Chrome MV3 extension --native messaging--> 99p-bridge --Unix socket--> menu bar app
    (service worker)      (stdin/stdout)    (.app/Contents/MacOS/)         (owns the session)
 ```
 
@@ -616,7 +616,7 @@ Extension to app:
 
 ## 13. Export / import
 
-### 13.1 `.ykv` (encrypted)
+### 13.1 `.99p` (encrypted)
 
 ```
 "99PX" | container_v u16 = 1 | flags u8 | reserved u8 | vault_uuid[16] | revision u64
@@ -639,7 +639,7 @@ recipient = type u8 (1 YubiKey, 2 recovery key) | id[8] | eph_pub[33] | wrap_non
 - AAD for each wrap: every byte before `recipients`, plus the recipient's
   first 54 bytes. Payload AAD: every byte before the ciphertext. The plaintext
   format is §6.1, without the 1 KiB padding requirement.
-- Import of `.ykv`: unlock with a known card (touch) or a recovery key, then
+- Import of `.99p`: unlock with a known card (touch) or a recovery key, then
   merge (§9.4) or replace.
 
 ### 13.2 Plaintext (behind a typed confirmation and a warning)
@@ -679,16 +679,16 @@ recipient = type u8 (1 YubiKey, 2 recovery key) | id[8] | eph_pub[33] | wrap_non
 2. **No PUK, no Argon2.** The PUK is blocked at provisioning, so nobody,
    the owner included, can reset the PIN: the 255th wrong passphrase makes
    the vault on that card unreadable for good (the app shows the count once
-   10 have been used). Backup keys and `.ykv` exports are the only recovery.
+   10 have been used). Backup keys and `.99p` exports are the only recovery.
    With guessing capped at 255 by the card, Argon2 was dropped (§5.1). The
    cost: if the card's secret is ever extracted from the chip, the
    passphrase is all that remains and it can be guessed fast.
 3. `P` stays in the KEK (`HKDF(Z || P)`, unchanged): it costs nothing, keeps
-   the bank and `.ykv` formats stable, and means `Z` alone does not open
+   the bank and `.99p` formats stable, and means `Z` alone does not open
    the vault.
 4. **Denial of service**: anyone holding the card can make 255 wrong guesses,
    which blocks the PIN, and reset the PIV application, which destroys the
-   vault. Mitigation: synced backup keys and `.ykv` exports.
+   vault. Mitigation: synced backup keys and `.99p` exports.
 5. Writing objects needs the management key, which only exists inside the
    vault. So without a prior unlock, malware cannot overwrite the vault with
    chosen content. It could delete objects only by resetting PIV (point 4).

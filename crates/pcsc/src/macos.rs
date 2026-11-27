@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
-use ykvault_core::{Error, SmartCard};
+use p99_core::{Error, SmartCard};
 
 use crate::sys;
 use crate::util::{PcscError, Step, classify, code, is_yubikey_reader, parse_reader_list, state};
@@ -162,7 +162,7 @@ impl PcscCard {
         }
     }
 
-    fn select_piv(&mut self) -> ykvault_core::Result<()> {
+    fn select_piv(&mut self) -> p99_core::Result<()> {
         let resp = self.transmit(&SELECT_PIV)?;
         match resp[resp.len() - 2..] {
             [0x90, 0x00] | [0x61, _] => Ok(()),
@@ -177,7 +177,7 @@ impl PcscCard {
     /// Starts an exclusive PC/SC transaction and selects PIV (another app may
     /// have selected a different applet since). Pair with [`PcscCard::end`].
     /// Callers that nest operations count depth themselves.
-    pub fn begin(&mut self) -> ykvault_core::Result<()> {
+    pub fn begin(&mut self) -> p99_core::Result<()> {
         if self.dead {
             return Err(Error::CardRemoved);
         }
@@ -207,8 +207,8 @@ impl PcscCard {
     /// Runs `f` inside one exclusive transaction (`begin`, `f`, `end`).
     pub fn transaction<R>(
         &mut self,
-        f: impl FnOnce(&mut Self) -> ykvault_core::Result<R>,
-    ) -> ykvault_core::Result<R> {
+        f: impl FnOnce(&mut Self) -> p99_core::Result<R>,
+    ) -> p99_core::Result<R> {
         self.begin()?;
         let result = f(self);
         self.end();
@@ -226,7 +226,7 @@ impl PcscCard {
 }
 
 impl SmartCard for PcscCard {
-    fn transmit(&mut self, apdu: &[u8]) -> ykvault_core::Result<Vec<u8>> {
+    fn transmit(&mut self, apdu: &[u8]) -> p99_core::Result<Vec<u8>> {
         if self.dead {
             return Err(Error::CardRemoved);
         }
@@ -287,7 +287,7 @@ impl RemovalWatcher {
         let stop2 = stop.clone();
         let name = reader.to_owned();
         let thread = thread::Builder::new()
-            .name("ykvault-removal".into())
+            .name("99p-removal".into())
             .spawn(move || {
                 let mut current = state::UNAWARE;
                 while !stop2.load(Ordering::Acquire) {
@@ -386,7 +386,7 @@ mod tests {
         }
     }
 
-    /// Run on a Mac with a YubiKey: `cargo test -p ykvault-pcsc -- --ignored`.
+    /// Run on a Mac with a YubiKey: `cargo test -p p99-pcsc -- --ignored`.
     #[test]
     #[ignore = "needs a physical YubiKey"]
     fn hardware_select_and_serial() {

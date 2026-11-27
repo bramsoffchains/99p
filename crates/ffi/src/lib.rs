@@ -1,5 +1,5 @@
 //! Plain C ABI for the macOS app (workstream D). The hand-written header in
-//! `include/ykvault.h` is the contract; see `docs/SPEC.md` §11.
+//! `include/p99.h` is the contract; see `docs/SPEC.md` §11.
 //!
 //! Cards are real YubiKeys over PC/SC (macOS) or in-memory mocks (`cards.rs`),
 //! all driven through the core's Session API.
@@ -13,14 +13,14 @@ use std::ffi::{CStr, c_char, c_void};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::{Arc, Mutex, Weak};
 
-use ykvault_core::model::{Entry, EntryKind, Field, FieldKind, Vault};
-use ykvault_core::{base32, crypto, generator, host, json, otpauth, totp};
-use ykvault_core::{Error, Result, Session, SmartCard};
+use p99_core::model::{Entry, EntryKind, Field, FieldKind, Vault};
+use p99_core::{base32, crypto, generator, host, json, otpauth, totp};
+use p99_core::{Error, Result, Session, SmartCard};
 use zeroize::Zeroize;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum YkvStatus {
+pub enum P99Status {
     Ok = 0,
     CardRemoved = 1,
     Card = 2,
@@ -40,27 +40,27 @@ pub enum YkvStatus {
     Panic = 255,
 }
 
-fn status(e: &Error) -> YkvStatus {
+fn status(e: &Error) -> P99Status {
     match e {
-        Error::CardRemoved => YkvStatus::CardRemoved,
-        Error::Card { sw: 0x6982, context: "ecdh" } => YkvStatus::TouchTimeout,
-        Error::Card { .. } => YkvStatus::Card,
-        Error::NotFound => YkvStatus::NotFound,
-        Error::Capacity { .. } => YkvStatus::Capacity,
-        Error::ManagementKey => YkvStatus::MgmtKey,
-        Error::Decrypt => YkvStatus::Decrypt,
-        Error::NoValidVault => YkvStatus::NoVault,
-        Error::Format(_) => YkvStatus::Format,
-        Error::Unsupported(_) => YkvStatus::Unsupported,
-        Error::Invalid(_) => YkvStatus::Invalid,
-        Error::Rng => YkvStatus::Rng,
-        Error::Locked => YkvStatus::Locked,
-        Error::WrongPin { .. } => YkvStatus::WrongPin,
-        Error::PinBlocked => YkvStatus::PinBlocked,
+        Error::CardRemoved => P99Status::CardRemoved,
+        Error::Card { sw: 0x6982, context: "ecdh" } => P99Status::TouchTimeout,
+        Error::Card { .. } => P99Status::Card,
+        Error::NotFound => P99Status::NotFound,
+        Error::Capacity { .. } => P99Status::Capacity,
+        Error::ManagementKey => P99Status::MgmtKey,
+        Error::Decrypt => P99Status::Decrypt,
+        Error::NoValidVault => P99Status::NoVault,
+        Error::Format(_) => P99Status::Format,
+        Error::Unsupported(_) => P99Status::Unsupported,
+        Error::Invalid(_) => P99Status::Invalid,
+        Error::Rng => P99Status::Rng,
+        Error::Locked => P99Status::Locked,
+        Error::WrongPin { .. } => P99Status::WrongPin,
+        Error::PinBlocked => P99Status::PinBlocked,
     }
 }
 
-/// Text of the most recent error, for `ykv_last_error`.
+/// Text of the most recent error, for `p99_last_error`.
 static LAST_ERROR: std::sync::Mutex<String> = std::sync::Mutex::new(String::new());
 
 fn set_last_error(m: String) {
@@ -68,58 +68,58 @@ fn set_last_error(m: String) {
 }
 
 /// Runs `f`, never letting a panic unwind into Swift.
-fn guard(f: impl FnOnce() -> Result<()>) -> YkvStatus {
+fn guard(f: impl FnOnce() -> Result<()>) -> P99Status {
     match catch_unwind(AssertUnwindSafe(f)) {
-        Ok(Ok(())) => YkvStatus::Ok,
+        Ok(Ok(())) => P99Status::Ok,
         Ok(Err(e)) => {
             set_last_error(e.to_string());
             status(&e)
         }
         Err(_) => {
             set_last_error("internal error".into());
-            YkvStatus::Panic
+            P99Status::Panic
         }
     }
 }
 
 /// UTF-8 text describing the most recent failed call (any thread).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_last_error(out: *mut YkvBuf) {
+pub unsafe extern "C" fn p99_last_error(out: *mut P99Buf) {
     if out.is_null() {
         return;
     }
     let m = LAST_ERROR.lock().unwrap_or_else(|e| e.into_inner()).clone();
-    unsafe { *out = YkvBuf::from_vec(m.into_bytes()) };
+    unsafe { *out = P99Buf::from_vec(m.into_bytes()) };
 }
 
 // ---------------------------------------------------------------- buffers
 
 #[repr(C)]
 #[derive(Debug)]
-pub struct YkvBuf {
+pub struct P99Buf {
     pub ptr: *mut u8,
     pub len: usize,
 }
 
-impl YkvBuf {
-    pub const EMPTY: YkvBuf = YkvBuf { ptr: std::ptr::null_mut(), len: 0 };
-    fn from_vec(v: Vec<u8>) -> YkvBuf {
+impl P99Buf {
+    pub const EMPTY: P99Buf = P99Buf { ptr: std::ptr::null_mut(), len: 0 };
+    fn from_vec(v: Vec<u8>) -> P99Buf {
         let b = v.into_boxed_slice();
         let len = b.len();
-        YkvBuf { ptr: Box::into_raw(b) as *mut u8, len }
+        P99Buf { ptr: Box::into_raw(b) as *mut u8, len }
     }
 }
 
-fn put(out: *mut YkvBuf, v: Vec<u8>) -> Result<()> {
+fn put(out: *mut P99Buf, v: Vec<u8>) -> Result<()> {
     if out.is_null() {
         return Err(Error::Invalid("null out"));
     }
-    unsafe { out.write(YkvBuf::from_vec(v)) };
+    unsafe { out.write(P99Buf::from_vec(v)) };
     Ok(())
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_buf_free(buf: YkvBuf) {
+pub unsafe extern "C" fn p99_buf_free(buf: P99Buf) {
     if buf.ptr.is_null() {
         return;
     }
@@ -146,8 +146,8 @@ unsafe fn bytes<'a>(p: *const u8, len: usize) -> Result<&'a [u8]> {
 
 // ---------------------------------------------------------------- sessions
 
-pub type YkvRemovalFn = Option<unsafe extern "C" fn(ctx: *mut c_void, reader_id: *const c_char)>;
-pub type YkvTouchFn = Option<unsafe extern "C" fn(ctx: *mut c_void)>;
+pub type P99RemovalFn = Option<unsafe extern "C" fn(ctx: *mut c_void, reader_id: *const c_char)>;
+pub type P99TouchFn = Option<unsafe extern "C" fn(ctx: *mut c_void)>;
 
 #[derive(Clone, Copy)]
 struct Callback<F> {
@@ -158,7 +158,7 @@ struct Callback<F> {
 struct State {
     reader: String,
     session: Session<cards::Card>,
-    removal: Option<Callback<YkvRemovalFn>>,
+    removal: Option<Callback<P99RemovalFn>>,
     /// PC/SC removal watcher; dropped with the session.
     _watcher: Option<Box<dyn std::any::Any + Send>>,
 }
@@ -169,7 +169,7 @@ impl State {
     }
 }
 
-pub struct YkvSession(Arc<Mutex<State>>);
+pub struct P99Session(Arc<Mutex<State>>);
 
 static SESSIONS: Mutex<Vec<Weak<Mutex<State>>>> = Mutex::new(Vec::new());
 
@@ -177,7 +177,7 @@ fn live_sessions() -> Vec<Arc<Mutex<State>>> {
     SESSIONS.lock().unwrap_or_else(|e| e.into_inner()).iter().filter_map(Weak::upgrade).collect()
 }
 
-unsafe fn session<'a>(s: *mut YkvSession) -> Result<std::sync::MutexGuard<'a, State>> {
+unsafe fn session<'a>(s: *mut P99Session) -> Result<std::sync::MutexGuard<'a, State>> {
     if s.is_null() {
         return Err(Error::Invalid("null session"));
     }
@@ -206,7 +206,7 @@ fn open_in_txn(mut card: cards::Card) -> Result<Session<cards::Card>> {
     })
 }
 
-fn new_session(session: Session<cards::Card>, out: *mut *mut YkvSession) -> Result<()> {
+fn new_session(session: Session<cards::Card>, out: *mut *mut P99Session) -> Result<()> {
     if out.is_null() {
         return Err(Error::Invalid("null out"));
     }
@@ -216,7 +216,7 @@ fn new_session(session: Session<cards::Card>, out: *mut *mut YkvSession) -> Resu
     let mut all = SESSIONS.lock().unwrap_or_else(|e| e.into_inner());
     all.retain(|w| w.strong_count() > 0);
     all.push(Arc::downgrade(&state));
-    unsafe { out.write(Box::into_raw(Box::new(YkvSession(state)))) };
+    unsafe { out.write(Box::into_raw(Box::new(P99Session(state)))) };
     Ok(())
 }
 
@@ -239,7 +239,7 @@ fn on_removed(reader: &str) {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_list_cards(out_json: *mut YkvBuf) -> YkvStatus {
+pub unsafe extern "C" fn p99_list_cards(out_json: *mut P99Buf) -> P99Status {
     guard(|| {
         // Readers we already hold are reported from their session.
         let busy: Vec<(String, u32)> = live_sessions()
@@ -261,7 +261,7 @@ pub unsafe extern "C" fn ykv_list_cards(out_json: *mut YkvBuf) -> YkvStatus {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_open(reader_id: *const c_char, out: *mut *mut YkvSession) -> YkvStatus {
+pub unsafe extern "C" fn p99_open(reader_id: *const c_char, out: *mut *mut P99Session) -> P99Status {
     guard(|| {
         let reader = unsafe { cstr(reader_id) }?;
         new_session(open_in_txn(cards::open(reader)?)?, out)
@@ -269,13 +269,13 @@ pub unsafe extern "C" fn ykv_open(reader_id: *const c_char, out: *mut *mut YkvSe
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_provision(
+pub unsafe extern "C" fn p99_provision(
     reader_id: *const c_char,
     pass: *const u8,
     pass_len: usize,
     label: *const c_char,
-    out: *mut *mut YkvSession,
-) -> YkvStatus {
+    out: *mut *mut P99Session,
+) -> P99Status {
     guard(|| {
         let reader = unsafe { cstr(reader_id) }?;
         let label = if label.is_null() { "YubiKey" } else { unsafe { cstr(label) }? };
@@ -300,7 +300,7 @@ pub unsafe extern "C" fn ykv_provision(
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_close(s: *mut YkvSession) {
+pub unsafe extern "C" fn p99_close(s: *mut P99Session) {
     if s.is_null() {
         return;
     }
@@ -311,7 +311,7 @@ pub unsafe extern "C" fn ykv_close(s: *mut YkvSession) {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_set_touch_callback(s: *mut YkvSession, f: YkvTouchFn, ctx: *mut c_void) {
+pub unsafe extern "C" fn p99_set_touch_callback(s: *mut P99Session, f: P99TouchFn, ctx: *mut c_void) {
     let _ = guard(|| {
         let st = unsafe { session(s) }?;
         let cb = Callback { f, ctx: ctx as usize };
@@ -325,7 +325,7 @@ pub unsafe extern "C" fn ykv_set_touch_callback(s: *mut YkvSession, f: YkvTouchF
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_unlock(s: *mut YkvSession, pass: *const u8, pass_len: usize) -> YkvStatus {
+pub unsafe extern "C" fn p99_unlock(s: *mut P99Session, pass: *const u8, pass_len: usize) -> P99Status {
     guard(|| {
         let pass = unsafe { bytes(pass, pass_len) }?;
         txn(&mut *unsafe { session(s) }?, |s| s.unlock(pass))
@@ -333,7 +333,7 @@ pub unsafe extern "C" fn ykv_unlock(s: *mut YkvSession, pass: *const u8, pass_le
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_pin_tries(s: *mut YkvSession, out_left: *mut u32) -> YkvStatus {
+pub unsafe extern "C" fn p99_pin_tries(s: *mut P99Session, out_left: *mut u32) -> P99Status {
     guard(|| {
         if out_left.is_null() {
             return Err(Error::Invalid("null out"));
@@ -345,7 +345,7 @@ pub unsafe extern "C" fn ykv_pin_tries(s: *mut YkvSession, out_left: *mut u32) -
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_lock(s: *mut YkvSession) {
+pub unsafe extern "C" fn p99_lock(s: *mut P99Session) {
     let _ = guard(|| {
         unsafe { session(s) }?.session.lock();
         Ok(())
@@ -353,7 +353,7 @@ pub unsafe extern "C" fn ykv_lock(s: *mut YkvSession) {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_is_unlocked(s: *mut YkvSession) -> bool {
+pub unsafe extern "C" fn p99_is_unlocked(s: *mut P99Session) -> bool {
     let mut r = false;
     let _ = guard(|| {
         r = unsafe { session(s) }?.session.is_unlocked();
@@ -371,7 +371,7 @@ fn is_secret(k: FieldKind) -> bool {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_list_entries(s: *mut YkvSession, host: *const c_char, out_json: *mut YkvBuf) -> YkvStatus {
+pub unsafe extern "C" fn p99_list_entries(s: *mut P99Session, host: *const c_char, out_json: *mut P99Buf) -> P99Status {
     guard(|| {
         let host = if host.is_null() { None } else { Some(host::normalize(unsafe { cstr(host) }?)?) };
         let host = host.as_deref();
@@ -438,7 +438,7 @@ fn entry(v: &Vault, id: u64) -> Result<&Entry> {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_reveal_field(s: *mut YkvSession, entry_id: u64, field_index: u32, out: *mut YkvBuf) -> YkvStatus {
+pub unsafe extern "C" fn p99_reveal_field(s: *mut P99Session, entry_id: u64, field_index: u32, out: *mut P99Buf) -> P99Status {
     guard(|| {
         let st = unsafe { session(s) }?;
         let e = entry(st.vault()?, entry_id)?;
@@ -454,13 +454,13 @@ pub unsafe extern "C" fn ykv_reveal_field(s: *mut YkvSession, entry_id: u64, fie
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_totp_now(
-    s: *mut YkvSession,
+pub unsafe extern "C" fn p99_totp_now(
+    s: *mut P99Session,
     entry_id: u64,
     unix_time: u64,
-    out_code: *mut YkvBuf,
+    out_code: *mut P99Buf,
     out_seconds_left: *mut u32,
-) -> YkvStatus {
+) -> P99Status {
     guard(|| {
         let st = unsafe { session(s) }?;
         let e = entry(st.vault()?, entry_id)?;
@@ -520,7 +520,7 @@ fn parse_entry(input: &[u8]) -> Result<Entry> {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_upsert_entry(s: *mut YkvSession, json_ptr: *const u8, len: usize, out_id: *mut u64) -> YkvStatus {
+pub unsafe extern "C" fn p99_upsert_entry(s: *mut P99Session, json_ptr: *const u8, len: usize, out_id: *mut u64) -> P99Status {
     guard(|| {
         let mut e = parse_entry(unsafe { bytes(json_ptr, len) }?)?;
         let mut st = unsafe { session(s) }?;
@@ -536,7 +536,7 @@ pub unsafe extern "C" fn ykv_upsert_entry(s: *mut YkvSession, json_ptr: *const u
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_delete_entry(s: *mut YkvSession, entry_id: u64) -> YkvStatus {
+pub unsafe extern "C" fn p99_delete_entry(s: *mut P99Session, entry_id: u64) -> P99Status {
     guard(|| {
         let mut st = unsafe { session(s) }?;
         if st.session.entry(entry_id)?.is_none() {
@@ -547,7 +547,7 @@ pub unsafe extern "C" fn ykv_delete_entry(s: *mut YkvSession, entry_id: u64) -> 
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_set_removal_callback(s: *mut YkvSession, f: YkvRemovalFn, ctx: *mut c_void) {
+pub unsafe extern "C" fn p99_set_removal_callback(s: *mut P99Session, f: P99RemovalFn, ctx: *mut c_void) {
     let _ = guard(|| {
         unsafe { session(s) }?.removal = Some(Callback { f, ctx: ctx as usize });
         Ok(())
@@ -555,7 +555,7 @@ pub unsafe extern "C" fn ykv_set_removal_callback(s: *mut YkvSession, f: YkvRemo
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_capacity(s: *mut YkvSession, out_json: *mut YkvBuf) -> YkvStatus {
+pub unsafe extern "C" fn p99_capacity(s: *mut P99Session, out_json: *mut P99Buf) -> P99Status {
     guard(|| {
         let st = &unsafe { session(s) }?.session;
         let c = st.capacity()?;
@@ -566,7 +566,7 @@ pub unsafe extern "C" fn ykv_capacity(s: *mut YkvSession, out_json: *mut YkvBuf)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_gen_password(length: u32, class_flags: u32, out: *mut YkvBuf) -> YkvStatus {
+pub unsafe extern "C" fn p99_gen_password(length: u32, class_flags: u32, out: *mut P99Buf) -> P99Status {
     guard(|| {
         let o = generator::PasswordOptions {
             length: length as usize,
@@ -581,7 +581,7 @@ pub unsafe extern "C" fn ykv_gen_password(length: u32, class_flags: u32, out: *m
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_gen_passphrase(words: u32, separator: u8, out: *mut YkvBuf) -> YkvStatus {
+pub unsafe extern "C" fn p99_gen_passphrase(words: u32, separator: u8, out: *mut P99Buf) -> P99Status {
     guard(|| {
         if !separator.is_ascii() {
             return Err(Error::Invalid("separator must be ASCII"));
@@ -591,12 +591,12 @@ pub unsafe extern "C" fn ykv_gen_passphrase(words: u32, separator: u8, out: *mut
     })
 }
 
-fn vault_secret(s: *mut YkvSession) -> Result<[u8; 32]> {
+fn vault_secret(s: *mut P99Session) -> Result<[u8; 32]> {
     Ok(unsafe { session(s) }?.vault()?.vault_secret)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_favicon_name(s: *mut YkvSession, host: *const c_char, out_hex: *mut YkvBuf) -> YkvStatus {
+pub unsafe extern "C" fn p99_favicon_name(s: *mut P99Session, host: *const c_char, out_hex: *mut P99Buf) -> P99Status {
     guard(|| {
         let mut k = vault_secret(s)?;
         let r = put(out_hex, favicon::name(&k, unsafe { cstr(host) }?).into_bytes());
@@ -606,7 +606,7 @@ pub unsafe extern "C" fn ykv_favicon_name(s: *mut YkvSession, host: *const c_cha
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_favicon_seal(s: *mut YkvSession, host: *const c_char, png: *const u8, len: usize, out: *mut YkvBuf) -> YkvStatus {
+pub unsafe extern "C" fn p99_favicon_seal(s: *mut P99Session, host: *const c_char, png: *const u8, len: usize, out: *mut P99Buf) -> P99Status {
     guard(|| {
         let mut k = vault_secret(s)?;
         let r = favicon::seal(&k, unsafe { cstr(host) }?, unsafe { bytes(png, len) }?);
@@ -616,7 +616,7 @@ pub unsafe extern "C" fn ykv_favicon_seal(s: *mut YkvSession, host: *const c_cha
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_favicon_open(s: *mut YkvSession, host: *const c_char, blob: *const u8, len: usize, out_png: *mut YkvBuf) -> YkvStatus {
+pub unsafe extern "C" fn p99_favicon_open(s: *mut P99Session, host: *const c_char, blob: *const u8, len: usize, out_png: *mut P99Buf) -> P99Status {
     guard(|| {
         let mut k = vault_secret(s)?;
         let r = favicon::open(&k, unsafe { cstr(host) }?, unsafe { bytes(blob, len) }?);
@@ -628,7 +628,7 @@ pub unsafe extern "C" fn ykv_favicon_open(s: *mut YkvSession, host: *const c_cha
 // ---------------------------------------------------------------- backup keys
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_known_keys(s: *mut YkvSession, out_json: *mut YkvBuf) -> YkvStatus {
+pub unsafe extern "C" fn p99_known_keys(s: *mut P99Session, out_json: *mut P99Buf) -> P99Status {
     guard(|| {
         let st = unsafe { session(s) }?;
         let rev = st.session.revision()?;
@@ -664,7 +664,7 @@ fn other_card(st: &State, reader: *const c_char) -> Result<cards::Card> {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_clone_to(s: *mut YkvSession, backup_reader: *const c_char, label: *const c_char) -> YkvStatus {
+pub unsafe extern "C" fn p99_clone_to(s: *mut P99Session, backup_reader: *const c_char, label: *const c_char) -> P99Status {
     guard(|| {
         let mut st = unsafe { session(s) }?;
         let label = if label.is_null() { "Backup YubiKey" } else { unsafe { cstr(label) }? };
@@ -681,9 +681,9 @@ pub unsafe extern "C" fn ykv_clone_to(s: *mut YkvSession, backup_reader: *const 
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_sync_with(s: *mut YkvSession, other_reader: *const c_char, out_relation: *mut u32) -> YkvStatus {
+pub unsafe extern "C" fn p99_sync_with(s: *mut P99Session, other_reader: *const c_char, out_relation: *mut u32) -> P99Status {
     guard(|| {
-        use ykvault_core::merge::Relation;
+        use p99_core::merge::Relation;
         let mut st = unsafe { session(s) }?;
         let mut other = other_card(&st, other_reader)?;
         let r = txn(&mut st, |s| s.sync_with(&mut other));
@@ -704,17 +704,17 @@ pub unsafe extern "C" fn ykv_sync_with(s: *mut YkvSession, other_reader: *const 
 // ---------------------------------------------------------------- export / import
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_export_ykv(
-    s: *mut YkvSession,
+pub unsafe extern "C" fn p99_export_backup(
+    s: *mut P99Session,
     with_recovery_key: bool,
-    out_file: *mut YkvBuf,
-    out_recovery: *mut YkvBuf,
-) -> YkvStatus {
+    out_file: *mut P99Buf,
+    out_recovery: *mut P99Buf,
+) -> P99Status {
     guard(|| {
         let st = unsafe { session(s) }?;
-        let (file, rk) = st.session.export_ykv(with_recovery_key)?;
+        let (file, rk) = st.session.export_backup(with_recovery_key)?;
         if !out_recovery.is_null() {
-            unsafe { out_recovery.write(YkvBuf::EMPTY) };
+            unsafe { out_recovery.write(P99Buf::EMPTY) };
             if let Some(rk) = rk {
                 put(out_recovery, rk.into_bytes())?;
             }
@@ -724,15 +724,15 @@ pub unsafe extern "C" fn ykv_export_ykv(
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_import_ykv(
-    s: *mut YkvSession,
+pub unsafe extern "C" fn p99_import_backup(
+    s: *mut P99Session,
     file: *const u8,
     len: usize,
     pass: *const u8,
     pass_len: usize,
     recovery_key: *const c_char,
     out_count: *mut u32,
-) -> YkvStatus {
+) -> P99Status {
     guard(|| {
         let file = unsafe { bytes(file, len) }?;
         let pass = unsafe { bytes(pass, pass_len) }?;
@@ -740,8 +740,8 @@ pub unsafe extern "C" fn ykv_import_ykv(
         let mut st = unsafe { session(s) }?;
         let count = txn(&mut st, |s| {
             let imported = match rk {
-                Some(rk) => ykvault_core::ykv::open_with_recovery_key(file, pass, rk)?,
-                None => s.open_ykv(file, pass)?,
+                Some(rk) => p99_core::backup::open_with_recovery_key(file, pass, rk)?,
+                None => s.open_backup(file, pass)?,
             };
             s.import_merge(&imported)?;
             Ok(imported.entries.iter().filter(|e| !e.deleted).count() as u32)
@@ -754,14 +754,14 @@ pub unsafe extern "C" fn ykv_import_ykv(
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_export_plain(s: *mut YkvSession, format: u32, out: *mut YkvBuf) -> YkvStatus {
+pub unsafe extern "C" fn p99_export_plain(s: *mut P99Session, format: u32, out: *mut P99Buf) -> P99Status {
     guard(|| {
-        use ykvault_core::interop;
+        use p99_core::interop;
         let st = unsafe { session(s) }?;
         let entries = &st.vault()?.entries;
         let text = match format {
             0 => interop::export_csv(entries).0,
-            1 => interop::export_json(entries, ykvault_core::session::unix_now()),
+            1 => interop::export_json(entries, p99_core::session::unix_now()),
             _ => return Err(Error::Invalid("format")),
         };
         put(out, text.as_bytes().to_vec())
@@ -769,15 +769,15 @@ pub unsafe extern "C" fn ykv_export_plain(s: *mut YkvSession, format: u32, out: 
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_import_plain(s: *mut YkvSession, data: *const u8, len: usize, out_json: *mut YkvBuf) -> YkvStatus {
+pub unsafe extern "C" fn p99_import_plain(s: *mut P99Session, data: *const u8, len: usize, out_json: *mut P99Buf) -> P99Status {
     guard(|| {
-        use ykvault_core::interop;
+        use p99_core::interop;
         let text = std::str::from_utf8(unsafe { bytes(data, len) }?).map_err(|_| Error::Invalid("not UTF-8"))?;
         let text = text.trim_start_matches('\u{feff}');
         let imp = if text.trim_start().starts_with('{') {
             interop::import_json(text)?
         } else {
-            interop::import_csv(text, ykvault_core::session::unix_now())?
+            interop::import_csv(text, p99_core::session::unix_now())?
         };
         let n = imp.entries.len();
         let mut st = unsafe { session(s) }?;
@@ -801,12 +801,12 @@ pub unsafe extern "C" fn ykv_import_plain(s: *mut YkvSession, data: *const u8, l
 // ---------------------------------------------------------------- mock control
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_mock_enable(cards: u32, flags: u32, touch_ms: u32) -> YkvStatus {
+pub unsafe extern "C" fn p99_mock_enable(cards: u32, flags: u32, touch_ms: u32) -> P99Status {
     guard(|| cards::enable_mocks(cards, flags & 1 != 0, touch_ms as u64).map(drop))
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ykv_mock_set_present(reader_id: *const c_char, present: bool) -> YkvStatus {
+pub unsafe extern "C" fn p99_mock_set_present(reader_id: *const c_char, present: bool) -> P99Status {
     guard(|| {
         let reader = unsafe { cstr(reader_id) }?;
         cards::set_present(reader, present)?;

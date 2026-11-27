@@ -12,7 +12,7 @@ public enum NativeHostManifest {
 
     /// The bridge binary inside the running app bundle.
     public static var bundledBridgePath: String {
-        Bundle.main.bundleURL.appendingPathComponent("Contents/MacOS/ykvault-bridge").path
+        Bundle.main.bundleURL.appendingPathComponent("Contents/MacOS/99p-bridge").path
     }
 
     public static func json(bridgePath: String, extensionIDs: [String]) throws -> Data {

@@ -126,13 +126,13 @@ More details: [`macos/README.md`](macos/README.md) for the app and
 
 ```
 crates/
-  core/     ykvault-core: model, TLV, crypto, container, PIV APDU client, A/B
-            storage, session, merge, .ykv and CSV/JSON export, TOTP, generator,
+  core/     p99-core: model, TLV, crypto, container, PIV APDU client, A/B
+            storage, session, merge, .99p and CSV/JSON export, TOTP, generator,
             MockYubiKey (in-memory YubiKey 5 used by the tests)
-  pcsc/     ykvault-pcsc: PCSC.framework transport and removal watcher (macOS)
-  ffi/      ykvault-ffi: plain C ABI staticlib for the app, include/ykvault.h
-  cli/      ykvault: small admin CLI for a real YubiKey (info, piv-reset)
-  bridge/   ykvault-bridge: Chrome native messaging host <-> app socket
+  pcsc/     p99-pcsc: PCSC.framework transport and removal watcher (macOS)
+  ffi/      p99-ffi: plain C ABI staticlib for the app, include/p99.h
+  cli/      99p: small admin CLI for a real YubiKey (info, piv-reset)
+  bridge/   99p-bridge: Chrome native messaging host <-> app socket
 macos/      the menu bar app (Swift package); BridgeServer/ is the app-side
             socket server for the browser bridge
 extension/  Chrome MV3 extension, vanilla JS, no dependencies
@@ -144,7 +144,7 @@ scripts/    checks (run locally and in CI)
 
 ```sh
 scripts/check.sh                                      # any OS: Rust, C header, dependency policy, extension
-cargo test -p ykvault-pcsc && scripts/swift-tests.sh  # macOS only
+cargo test -p p99-pcsc && scripts/swift-tests.sh  # macOS only
 ```
 
 GitHub Actions runs the same checks on every push and pull request (Linux

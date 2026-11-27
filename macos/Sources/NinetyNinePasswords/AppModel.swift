@@ -486,15 +486,15 @@ final class AppModel: ObservableObject {
 
     // MARK: export / import
 
-    /// Exports an encrypted .ykv. Returns the recovery key to show, once.
-    func exportYkv(withRecoveryKey: Bool) async -> String? {
+    /// Exports an encrypted .99p. Returns the recovery key to show, once.
+    func exportBackup(withRecoveryKey: Bool) async -> String? {
         guard let s = session, !busy else { return nil }
         touch()
         busy = true
         defer { busy = false }
         do {
-            let (file, rk) = try await vault.run { try s.exportYkv(withRecoveryKey: withRecoveryKey) }
-            guard let url = await Files.save(name: "99passwords \(Files.today).ykv", types: [Files.ykv]) else { return nil }
+            let (file, rk) = try await vault.run { try s.exportBackup(withRecoveryKey: withRecoveryKey) }
+            guard let url = await Files.save(name: "99passwords \(Files.today).99p", types: [Files.backup]) else { return nil }
             try Files.writePrivate(file, to: url)
             flash("Encrypted backup saved")
             return rk
@@ -504,7 +504,7 @@ final class AppModel: ObservableObject {
         }
     }
 
-    func importYkv(_ url: URL, passphrase: String, recoveryKey: String?) async -> Bool {
+    func importBackup(_ url: URL, passphrase: String, recoveryKey: String?) async -> Bool {
         guard let s = session, !busy else { return false }
         touch()
         busy = true
@@ -513,7 +513,7 @@ final class AppModel: ObservableObject {
         defer { busy = false; touchPrompt = false }
         do {
             let data = try Data(contentsOf: url)
-            let n = try await vault.run { try s.importYkv(data, passphrase: passphrase, recoveryKey: recoveryKey) }
+            let n = try await vault.run { try s.importBackup(data, passphrase: passphrase, recoveryKey: recoveryKey) }
             await reload()
             flash("Merged \(n) item\(n == 1 ? "" : "s") from the backup")
             return true

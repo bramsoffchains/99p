@@ -3,13 +3,13 @@
 use std::io::Write;
 use std::os::unix::net::UnixListener;
 use std::process::{Command, Stdio};
-use ykvault_bridge::{Endian, read_frame, write_frame};
+use p99_bridge::{Endian, read_frame, write_frame};
 
 const EXT: &str = "chrome-extension://abcdefghijklmnopabcdefghijklmnop/";
 
 #[test]
 fn relays_both_ways_and_says_hello() {
-    let dir = std::env::temp_dir().join(format!("ykvb-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("p99b-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let sock = dir.join("bridge.sock");
     let _ = std::fs::remove_file(&sock);
@@ -23,9 +23,9 @@ fn relays_both_ways_and_says_hello() {
         (String::from_utf8(hello).unwrap(), String::from_utf8(req).unwrap())
     });
 
-    let mut child = Command::new(env!("CARGO_BIN_EXE_ykvault-bridge"))
+    let mut child = Command::new(env!("CARGO_BIN_EXE_99p-bridge"))
         .arg(EXT)
-        .env("YKV_BRIDGE_SOCK", &sock)
+        .env("P99_BRIDGE_SOCK", &sock)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()
@@ -49,8 +49,8 @@ fn relays_both_ways_and_says_hello() {
 
 #[test]
 fn reports_app_unavailable() {
-    let out = Command::new(env!("CARGO_BIN_EXE_ykvault-bridge"))
-        .env("YKV_BRIDGE_SOCK", "/nonexistent/99p/bridge.sock")
+    let out = Command::new(env!("CARGO_BIN_EXE_99p-bridge"))
+        .env("P99_BRIDGE_SOCK", "/nonexistent/99p/bridge.sock")
         .stdin(Stdio::null())
         .output()
         .unwrap();

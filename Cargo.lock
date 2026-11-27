@@ -308,6 +308,56 @@ dependencies = [
 ]
 
 [[package]]
+name = "p99-bridge"
+version = "0.1.1"
+
+[[package]]
+name = "p99-cli"
+version = "0.1.1"
+dependencies = [
+ "p99-core",
+ "p99-pcsc",
+]
+
+[[package]]
+name = "p99-core"
+version = "0.1.1"
+dependencies = [
+ "aes",
+ "chacha20poly1305",
+ "des",
+ "getrandom",
+ "hkdf",
+ "hmac",
+ "miniz_oxide",
+ "p256",
+ "sha1",
+ "sha2",
+ "zeroize",
+]
+
+[[package]]
+name = "p99-ffi"
+version = "0.1.1"
+dependencies = [
+ "chacha20poly1305",
+ "hkdf",
+ "hmac",
+ "p99-core",
+ "p99-pcsc",
+ "sha2",
+ "zeroize",
+]
+
+[[package]]
+name = "p99-pcsc"
+version = "0.1.1"
+dependencies = [
+ "p99-core",
+ "zeroize",
+]
+
+[[package]]
 name = "poly1305"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -422,56 +472,6 @@ dependencies = [
  "group",
  "hybrid-array",
  "primefield",
-]
-
-[[package]]
-name = "ykvault-bridge"
-version = "0.1.1"
-
-[[package]]
-name = "ykvault-cli"
-version = "0.1.1"
-dependencies = [
- "ykvault-core",
- "ykvault-pcsc",
-]
-
-[[package]]
-name = "ykvault-core"
-version = "0.1.1"
-dependencies = [
- "aes",
- "chacha20poly1305",
- "des",
- "getrandom",
- "hkdf",
- "hmac",
- "miniz_oxide",
- "p256",
- "sha1",
- "sha2",
- "zeroize",
-]
-
-[[package]]
-name = "ykvault-ffi"
-version = "0.1.1"
-dependencies = [
- "chacha20poly1305",
- "hkdf",
- "hmac",
- "sha2",
- "ykvault-core",
- "ykvault-pcsc",
- "zeroize",
-]
-
-[[package]]
-name = "ykvault-pcsc"
-version = "0.1.1"
-dependencies = [
- "ykvault-core",
- "zeroize",
 ]
 
 [[package]]

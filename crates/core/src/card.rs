@@ -2,7 +2,7 @@
 //!
 //! The PIV APDU client (`piv` module, workstream A) is written against this
 //! trait. `MockYubiKey` (tests) and the macOS PC/SC transport
-//! (`ykvault-pcsc`, workstream C) both implement it, so every byte the core
+//! (`p99-pcsc`, workstream C) both implement it, so every byte the core
 //! sends to a real YubiKey is also exercised by the automated tests.
 
 use crate::error::Result;

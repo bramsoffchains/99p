@@ -1,14 +1,14 @@
-//! `ykvault` CLI: small hardware admin commands for a real YubiKey.
+//! `99p` CLI: small hardware admin commands for a real YubiKey.
 //!
-//!   ykvault info              serial, firmware, PIN/PUK tries, slot 0x82 policy
-//!   ykvault piv-reset SERIAL  blocks PIN and PUK, then resets the PIV
+//!   99p info              serial, firmware, PIN/PUK tries, slot 0x82 policy
+//!   99p piv-reset SERIAL  blocks PIN and PUK, then resets the PIV
 //!                             application. Wipes the vault. SERIAL confirms.
 
 #[cfg(target_os = "macos")]
 fn main() {
-    use ykvault_core::piv::{self, Piv};
-    use ykvault_core::{Error, Result};
-    use ykvault_pcsc::PcscCard;
+    use p99_core::piv::{self, Piv};
+    use p99_core::{Error, Result};
+    use p99_pcsc::PcscCard;
 
     fn run(args: &[String]) -> Result<()> {
         let card = PcscCard::open(None).map_err(|_| Error::CardRemoved)?;
@@ -55,11 +55,11 @@ fn main() {
                 Ok(())
             }
             Some("piv-reset") => {
-                eprintln!("type the serial ({serial}) to confirm: ykvault piv-reset {serial}");
+                eprintln!("type the serial ({serial}) to confirm: 99p piv-reset {serial}");
                 std::process::exit(2)
             }
             _ => {
-                eprintln!("usage: ykvault info | ykvault piv-reset SERIAL");
+                eprintln!("usage: 99p info | 99p piv-reset SERIAL");
                 std::process::exit(2)
             }
         }
@@ -67,13 +67,13 @@ fn main() {
 
     let args: Vec<String> = std::env::args().skip(1).collect();
     if let Err(e) = run(&args) {
-        eprintln!("ykvault: {e}");
+        eprintln!("99p: {e}");
         std::process::exit(1);
     }
 }
 
 #[cfg(not(target_os = "macos"))]
 fn main() {
-    eprintln!("ykvault: needs macOS (PC/SC)");
+    eprintln!("99p: needs macOS (PC/SC)");
     std::process::exit(2);
 }

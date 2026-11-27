@@ -24,7 +24,7 @@ pub(crate) mod state {
 
 /// Errors from reader discovery and connection. Once a card is connected,
 /// `SmartCard::transmit` reports every transport failure as
-/// `ykvault_core::Error::CardRemoved`, as the trait requires.
+/// `p99_core::Error::CardRemoved`, as the trait requires.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PcscError {
     /// A PC/SC call failed with this return code.
@@ -44,9 +44,9 @@ impl fmt::Display for PcscError {
 
 impl std::error::Error for PcscError {}
 
-impl From<PcscError> for ykvault_core::Error {
+impl From<PcscError> for p99_core::Error {
     fn from(_: PcscError) -> Self {
-        ykvault_core::Error::CardRemoved
+        p99_core::Error::CardRemoved
     }
 }
 
@@ -130,7 +130,7 @@ mod tests {
 
     #[test]
     fn maps_to_core_error() {
-        let e: ykvault_core::Error = PcscError::NoYubiKey.into();
-        assert_eq!(e, ykvault_core::Error::CardRemoved);
+        let e: p99_core::Error = PcscError::NoYubiKey.into();
+        assert_eq!(e, p99_core::Error::CardRemoved);
     }
 }

@@ -1,8 +1,8 @@
-// Swift wrapper over the C ABI in crates/ffi/include/ykvault.h (SPEC §11).
+// Swift wrapper over the C ABI in crates/ffi/include/p99.h (SPEC §11).
 // Every call goes through one serial queue: a session is not thread-safe, and
 // unlock/save block (touch, APDUs), so they never run on the main thread.
 
-import CYkvault
+import CP99
 import Foundation
 
 public struct VaultError: Error, Equatable, LocalizedError {
@@ -10,30 +10,30 @@ public struct VaultError: Error, Equatable, LocalizedError {
     /// The core's own description of what went wrong.
     public let detail: String
 
-    init(_ s: YkvStatus) {
+    init(_ s: P99Status) {
         code = s.rawValue
-        var buf = YkvBuf(ptr: nil, len: 0)
-        ykv_last_error(&buf)
+        var buf = P99Buf(ptr: nil, len: 0)
+        p99_last_error(&buf)
         detail = buf.ptr.map { String(decoding: UnsafeBufferPointer(start: $0, count: buf.len), as: UTF8.self) } ?? ""
-        ykv_buf_free(buf)
+        p99_buf_free(buf)
     }
 
-    public var isCardRemoved: Bool { code == YKV_ERR_CARD_REMOVED.rawValue }
-    public var isLocked: Bool { code == YKV_ERR_LOCKED.rawValue }
-    public var isWrongPin: Bool { code == YKV_ERR_WRONG_PIN.rawValue }
+    public var isCardRemoved: Bool { code == P99_ERR_CARD_REMOVED.rawValue }
+    public var isLocked: Bool { code == P99_ERR_LOCKED.rawValue }
+    public var isWrongPin: Bool { code == P99_ERR_WRONG_PIN.rawValue }
 
     public var errorDescription: String? {
-        switch YkvStatus(rawValue: code) {
-        case YKV_ERR_CARD_REMOVED: return "The YubiKey was removed."
-        case YKV_ERR_CAPACITY: return "The vault is full: this would not fit on the YubiKey."
-        case YKV_ERR_MGMT_KEY: return "This YubiKey has a custom PIV management key."
-        case YKV_ERR_DECRYPT: return "Wrong master password, or a different YubiKey."
-        case YKV_ERR_NO_VAULT: return "No vault on this YubiKey."
-        case YKV_ERR_LOCKED: return "The vault is locked."
-        case YKV_ERR_TOUCH_TIMEOUT: return "No touch. Tap the YubiKey when it blinks."
-        case YKV_ERR_WRONG_PIN: return "Wrong master password."
-        case YKV_ERR_PIN_BLOCKED: return "255 wrong master passwords: this YubiKey is blocked and its vault is gone."
-        case YKV_ERR_INVALID:
+        switch P99Status(rawValue: code) {
+        case P99_ERR_CARD_REMOVED: return "The YubiKey was removed."
+        case P99_ERR_CAPACITY: return "The vault is full: this would not fit on the YubiKey."
+        case P99_ERR_MGMT_KEY: return "This YubiKey has a custom PIV management key."
+        case P99_ERR_DECRYPT: return "Wrong master password, or a different YubiKey."
+        case P99_ERR_NO_VAULT: return "No vault on this YubiKey."
+        case P99_ERR_LOCKED: return "The vault is locked."
+        case P99_ERR_TOUCH_TIMEOUT: return "No touch. Tap the YubiKey when it blinks."
+        case P99_ERR_WRONG_PIN: return "Wrong master password."
+        case P99_ERR_PIN_BLOCKED: return "255 wrong master passwords: this YubiKey is blocked and its vault is gone."
+        case P99_ERR_INVALID:
             let d = detail.replacingOccurrences(of: "invalid argument: ", with: "")
             return d.isEmpty ? "That input was not accepted." : d.prefix(1).uppercased() + d.dropFirst() + "."
         default: return detail.isEmpty ? "YubiKey error (\(code))." : "YubiKey error: \(detail)."
@@ -41,20 +41,20 @@ public struct VaultError: Error, Equatable, LocalizedError {
     }
 }
 
-@inline(__always) func check(_ s: YkvStatus) throws {
-    if s != YKV_OK { throw VaultError(s) }
+@inline(__always) func check(_ s: P99Status) throws {
+    if s != P99_OK { throw VaultError(s) }
 }
 
 /// Calls `f` with an out-buffer and copies it out; Rust zeroizes its copy.
-func take(_ f: (UnsafeMutablePointer<YkvBuf>) -> YkvStatus) throws -> Data {
-    var buf = YkvBuf(ptr: nil, len: 0)
+func take(_ f: (UnsafeMutablePointer<P99Buf>) -> P99Status) throws -> Data {
+    var buf = P99Buf(ptr: nil, len: 0)
     try check(f(&buf))
-    defer { ykv_buf_free(buf) }
+    defer { p99_buf_free(buf) }
     guard let p = buf.ptr else { return Data() }
     return Data(bytes: p, count: buf.len)
 }
 
-func takeString(_ f: (UnsafeMutablePointer<YkvBuf>) -> YkvStatus) throws -> String {
+func takeString(_ f: (UnsafeMutablePointer<P99Buf>) -> P99Status) throws -> String {
     String(decoding: try take(f), as: UTF8.self)
 }
 
@@ -103,7 +103,7 @@ public struct Capacity: Decodable, Equatable {
     public let updated_at: UInt32
 }
 
-/// A YubiKey that holds this vault (`ykv_known_keys`).
+/// A YubiKey that holds this vault (`p99_known_keys`).
 public struct KnownKey: Decodable, Equatable, Identifiable {
     public let serial: UInt32
     public let label: String
@@ -204,7 +204,7 @@ public enum EntryKind {
 /// The single owner of FFI calls.
 public final class Vault {
     public static let shared = Vault()
-    public let queue = DispatchQueue(label: "app.99passwords.ykv")
+    public let queue = DispatchQueue(label: "app.99passwords.vault")
 
     /// Runs `f` on the FFI queue.
     public func run<T>(_ f: @escaping () throws -> T) async throws -> T {
@@ -214,23 +214,23 @@ public final class Vault {
     }
 
     public static func enableMock(cards: UInt32, demo: Bool, touchMs: UInt32) throws {
-        try check(ykv_mock_enable(cards, demo ? 1 : 0, touchMs))
+        try check(p99_mock_enable(cards, demo ? 1 : 0, touchMs))
     }
 
     public static func setMockPresent(_ reader: String, _ present: Bool) throws {
-        try check(ykv_mock_set_present(reader, present))
+        try check(p99_mock_set_present(reader, present))
     }
 
     public static func listCards() throws -> [CardInfo] {
-        try JSONDecoder().decode([CardInfo].self, from: take { ykv_list_cards($0) })
+        try JSONDecoder().decode([CardInfo].self, from: take { p99_list_cards($0) })
     }
 
     public static func password(length: Int, flags: UInt32) throws -> String {
-        try takeString { ykv_gen_password(UInt32(length), flags, $0) }
+        try takeString { p99_gen_password(UInt32(length), flags, $0) }
     }
 
     public static func passphrase(words: Int, separator: Character = "-") throws -> String {
-        try takeString { ykv_gen_passphrase(UInt32(words), separator.asciiValue ?? 45, $0) }
+        try takeString { p99_gen_passphrase(UInt32(words), separator.asciiValue ?? 45, $0) }
     }
 }
 
@@ -248,7 +248,7 @@ public final class Session {
 
     public static func open(_ reader: String) throws -> Session {
         var p: OpaquePointer?
-        try check(ykv_open(reader, &p))
+        try check(p99_open(reader, &p))
         return Session(p!, reader: reader)
     }
 
@@ -256,55 +256,55 @@ public final class Session {
     public static func provision(_ reader: String, passphrase: String, label: String) throws -> Session {
         var p: OpaquePointer?
         try withBytes(passphrase.precomposedStringWithCanonicalMapping) { b, n in
-            try check(ykv_provision(reader, b, n, label, &p))
+            try check(p99_provision(reader, b, n, label, &p))
         }
         return Session(p!, reader: reader)
     }
 
     public func unlock(_ passphrase: String) throws {
         try withBytes(passphrase.precomposedStringWithCanonicalMapping) { b, n in
-            try check(ykv_unlock(ptr, b, n))
+            try check(p99_unlock(ptr, b, n))
         }
     }
 
     /// Wrong passphrases left before the YubiKey blocks (255 when fresh).
     public func pinTriesLeft() throws -> Int {
         var n: UInt32 = 0
-        try check(ykv_pin_tries(ptr, &n))
+        try check(p99_pin_tries(ptr, &n))
         return Int(n)
     }
 
-    public func lock() { ykv_lock(ptr) }
-    public func close() { ykv_close(ptr) }
-    public var isUnlocked: Bool { ykv_is_unlocked(ptr) }
+    public func lock() { p99_lock(ptr) }
+    public func close() { p99_close(ptr) }
+    public var isUnlocked: Bool { p99_is_unlocked(ptr) }
 
     /// `fn` runs on the PC/SC watcher thread after the session was locked.
-    public func setRemovalCallback(_ ctx: UnsafeMutableRawPointer?, _ fn: YkvRemovalFn?) {
-        ykv_set_removal_callback(ptr, fn, ctx)
+    public func setRemovalCallback(_ ctx: UnsafeMutableRawPointer?, _ fn: P99RemovalFn?) {
+        p99_set_removal_callback(ptr, fn, ctx)
     }
 
     /// `fn` runs on the FFI queue, right before the card waits for a touch.
-    public func setTouchCallback(_ ctx: UnsafeMutableRawPointer?, _ fn: YkvTouchFn?) {
-        ykv_set_touch_callback(ptr, fn, ctx)
+    public func setTouchCallback(_ ctx: UnsafeMutableRawPointer?, _ fn: P99TouchFn?) {
+        p99_set_touch_callback(ptr, fn, ctx)
     }
 
     public func entries(host: String? = nil) throws -> [EntryInfo] {
         let data: Data
         if let host {
-            data = try take { ykv_list_entries(ptr, host, $0) }
+            data = try take { p99_list_entries(ptr, host, $0) }
         } else {
-            data = try take { ykv_list_entries(ptr, nil, $0) }
+            data = try take { p99_list_entries(ptr, nil, $0) }
         }
         return try JSONDecoder().decode([EntryInfo].self, from: data)
     }
 
     public func reveal(_ id: UInt64, field: Int) throws -> String {
-        try takeString { ykv_reveal_field(ptr, id, UInt32(field), $0) }
+        try takeString { p99_reveal_field(ptr, id, UInt32(field), $0) }
     }
 
     public func totp(_ id: UInt64, at date: Date = Date()) throws -> (code: String, secondsLeft: Int) {
         var left: UInt32 = 0
-        let code = try takeString { ykv_totp_now(ptr, id, UInt64(date.timeIntervalSince1970), $0, &left) }
+        let code = try takeString { p99_totp_now(ptr, id, UInt64(date.timeIntervalSince1970), $0, &left) }
         return (code, Int(left))
     }
 
@@ -313,80 +313,80 @@ public final class Session {
         let json = try JSONEncoder().encode(draft)
         var id: UInt64 = 0
         try json.withUnsafeBytes { b in
-            try check(ykv_upsert_entry(ptr, b.bindMemory(to: UInt8.self).baseAddress, b.count, &id))
+            try check(p99_upsert_entry(ptr, b.bindMemory(to: UInt8.self).baseAddress, b.count, &id))
         }
         return id
     }
 
-    public func delete(_ id: UInt64) throws { try check(ykv_delete_entry(ptr, id)) }
+    public func delete(_ id: UInt64) throws { try check(p99_delete_entry(ptr, id)) }
 
     /// Opaque cache filename for `host` (SPEC §10).
     public func faviconName(_ host: String) throws -> String {
-        try takeString { ykv_favicon_name(ptr, host, $0) }
+        try takeString { p99_favicon_name(ptr, host, $0) }
     }
 
     public func faviconSeal(_ host: String, png: Data) throws -> Data {
         try png.withUnsafeBytes { b in
-            try take { ykv_favicon_seal(ptr, host, b.bindMemory(to: UInt8.self).baseAddress, b.count, $0) }
+            try take { p99_favicon_seal(ptr, host, b.bindMemory(to: UInt8.self).baseAddress, b.count, $0) }
         }
     }
 
     public func faviconOpen(_ host: String, blob: Data) throws -> Data {
         try blob.withUnsafeBytes { b in
-            try take { ykv_favicon_open(ptr, host, b.bindMemory(to: UInt8.self).baseAddress, b.count, $0) }
+            try take { p99_favicon_open(ptr, host, b.bindMemory(to: UInt8.self).baseAddress, b.count, $0) }
         }
     }
 
     public func capacity() throws -> Capacity {
-        try JSONDecoder().decode(Capacity.self, from: take { ykv_capacity(ptr, $0) })
+        try JSONDecoder().decode(Capacity.self, from: take { p99_capacity(ptr, $0) })
     }
 
     // MARK: backup keys
 
     public func knownKeys() throws -> KnownKeys {
-        try JSONDecoder().decode(KnownKeys.self, from: take { ykv_known_keys(ptr, $0) })
+        try JSONDecoder().decode(KnownKeys.self, from: take { p99_known_keys(ptr, $0) })
     }
 
     /// Makes the empty YubiKey in `reader` a clone of this vault. No touch.
     public func cloneTo(_ reader: String, label: String) throws {
-        try check(ykv_clone_to(ptr, reader, label))
+        try check(p99_clone_to(ptr, reader, label))
     }
 
     /// Reconciles with another YubiKey holding this vault (one touch on it).
     public func sync(with reader: String) throws -> SyncResult {
         var r: UInt32 = 0
-        try check(ykv_sync_with(ptr, reader, &r))
+        try check(p99_sync_with(ptr, reader, &r))
         return SyncResult(rawValue: r) ?? .merged
     }
 
     // MARK: export / import
 
-    /// Encrypted `.ykv` export; the recovery key is returned only once.
-    public func exportYkv(withRecoveryKey: Bool) throws -> (file: Data, recoveryKey: String?) {
-        var f = YkvBuf(ptr: nil, len: 0)
-        var r = YkvBuf(ptr: nil, len: 0)
+    /// Encrypted `.99p` export; the recovery key is returned only once.
+    public func exportBackup(withRecoveryKey: Bool) throws -> (file: Data, recoveryKey: String?) {
+        var f = P99Buf(ptr: nil, len: 0)
+        var r = P99Buf(ptr: nil, len: 0)
         defer {
-            ykv_buf_free(f)
-            ykv_buf_free(r)
+            p99_buf_free(f)
+            p99_buf_free(r)
         }
-        try check(ykv_export_ykv(ptr, withRecoveryKey, &f, &r))
+        try check(p99_export_backup(ptr, withRecoveryKey, &f, &r))
         let file = f.ptr.map { Data(bytes: $0, count: f.len) } ?? Data()
         let key = r.ptr.map { String(decoding: UnsafeBufferPointer(start: UnsafePointer($0), count: r.len), as: UTF8.self) }
         return (file, key)
     }
 
-    /// Merges a `.ykv` into this vault. Without a recovery key, this YubiKey
+    /// Merges a `.99p` into this vault. Without a recovery key, this YubiKey
     /// opens it (one touch). Returns the number of items in the file.
     @discardableResult
-    public func importYkv(_ file: Data, passphrase: String, recoveryKey: String?) throws -> Int {
+    public func importBackup(_ file: Data, passphrase: String, recoveryKey: String?) throws -> Int {
         var n: UInt32 = 0
         try file.withUnsafeBytes { fb in
             let fp = fb.bindMemory(to: UInt8.self).baseAddress
             try withBytes(passphrase.precomposedStringWithCanonicalMapping) { b, len in
                 if let rk = recoveryKey {
-                    try check(ykv_import_ykv(ptr, fp, fb.count, b, len, rk, &n))
+                    try check(p99_import_backup(ptr, fp, fb.count, b, len, rk, &n))
                 } else {
-                    try check(ykv_import_ykv(ptr, fp, fb.count, b, len, nil, &n))
+                    try check(p99_import_backup(ptr, fp, fb.count, b, len, nil, &n))
                 }
             }
         }
@@ -395,13 +395,13 @@ public final class Session {
 
     /// Every secret in the clear. Callers warn first and write the file 0600.
     public func exportPlain(_ format: PlainFormat) throws -> Data {
-        try take { ykv_export_plain(ptr, format.rawValue, $0) }
+        try take { p99_export_plain(ptr, format.rawValue, $0) }
     }
 
     /// CSV (Chrome, 1Password, Bitwarden) or 99p-v1 JSON, in one save.
     public func importPlain(_ data: Data) throws -> ImportResult {
         let json = try data.withUnsafeBytes { b in
-            try take { ykv_import_plain(ptr, b.bindMemory(to: UInt8.self).baseAddress, b.count, $0) }
+            try take { p99_import_plain(ptr, b.bindMemory(to: UInt8.self).baseAddress, b.count, $0) }
         }
         return try JSONDecoder().decode(ImportResult.self, from: json)
     }

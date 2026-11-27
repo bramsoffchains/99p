@@ -2,10 +2,10 @@
 
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use ykvault_core::crypto;
-use ykvault_core::mock::MockYubiKey;
-use ykvault_core::model::{Entry, EntryKind, Field, FieldKind};
-use ykvault_core::session::{ProvisionOptions, Session};
+use p99_core::crypto;
+use p99_core::mock::MockYubiKey;
+use p99_core::model::{Entry, EntryKind, Field, FieldKind};
+use p99_core::session::{ProvisionOptions, Session};
 
 pub const PASS: &[u8] = b"correct horse battery staple";
 

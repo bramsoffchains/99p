@@ -5,10 +5,10 @@ use std::any::Any;
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 use std::time::Duration;
 
-use ykvault_core::mock::MockYubiKey;
-use ykvault_core::model::{Entry, EntryKind, Field, FieldKind};
-use ykvault_core::session::ProvisionOptions;
-use ykvault_core::{Error, Result, Session, SmartCard, crypto};
+use p99_core::mock::MockYubiKey;
+use p99_core::model::{Entry, EntryKind, Field, FieldKind};
+use p99_core::session::ProvisionOptions;
+use p99_core::{Error, Result, Session, SmartCard, crypto};
 
 pub const DEMO_PASSPHRASE: &str = "correct horse battery staple";
 
@@ -56,7 +56,7 @@ fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
 enum Inner {
     Mock(Arc<Mutex<MockYubiKey>>, Arc<MockTx>),
     #[cfg(target_os = "macos")]
-    Pcsc(ykvault_pcsc::PcscCard),
+    Pcsc(p99_pcsc::PcscCard),
 }
 
 pub struct Card {
@@ -173,7 +173,7 @@ pub fn open(id: &str) -> Result<Card> {
     }
     #[cfg(target_os = "macos")]
     {
-        let p = ykvault_pcsc::PcscCard::open(Some(id)).map_err(|_| Error::CardRemoved)?;
+        let p = p99_pcsc::PcscCard::open(Some(id)).map_err(|_| Error::CardRemoved)?;
         Ok(Card { id: id.into(), inner: Inner::Pcsc(p), touch, depth: 0, outside: 0 })
     }
     #[cfg(not(target_os = "macos"))]
@@ -193,7 +193,7 @@ pub fn list(busy: &[(String, u32)]) -> Vec<Listed> {
     #[cfg_attr(not(target_os = "macos"), allow(unused_mut))]
     let mut ids: Vec<(String, bool)> = lock(&MOCKS).iter().filter(|m| m.present).map(|m| (m.id.clone(), true)).collect();
     #[cfg(target_os = "macos")]
-    ids.extend(ykvault_pcsc::yubikey_readers().unwrap_or_default().into_iter().map(|r| (r, false)));
+    ids.extend(p99_pcsc::yubikey_readers().unwrap_or_default().into_iter().map(|r| (r, false)));
     let mut out = vec![];
     for (id, mock) in ids {
         if let Some((_, serial)) = busy.iter().find(|(r, _)| *r == id) {

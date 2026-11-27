@@ -74,9 +74,9 @@ import Testing
         XCTAssertEqual(try s.sync(with: backup), .updatedOther)
         XCTAssertEqual(try s.sync(with: backup), .inSync)
 
-        let (file, rk) = try s.exportYkv(withRecoveryKey: true)
+        let (file, rk) = try s.exportBackup(withRecoveryKey: true)
         XCTAssertNotNil(rk)
-        XCTAssertGreaterThan(try s.importYkv(file, passphrase: "correct horse battery staple", recoveryKey: rk), 0)
+        XCTAssertGreaterThan(try s.importBackup(file, passphrase: "correct horse battery staple", recoveryKey: rk), 0)
         let csv = String(decoding: try s.exportPlain(.csv), as: UTF8.self)
         XCTAssertTrue(csv.hasPrefix("name,url,username,password"))
         let r = try s.importPlain(Data("name,url,username,password\nShop,https://shop.example,me,pw\n".utf8))

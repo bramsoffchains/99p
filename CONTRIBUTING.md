@@ -33,7 +33,7 @@ and paste the summary into the PR description:
 
 ```sh
 scripts/check.sh                                      # Linux or macOS
-cargo test -p ykvault-pcsc && scripts/swift-tests.sh  # macOS
+cargo test -p p99-pcsc && scripts/swift-tests.sh  # macOS
 macos/build-app.sh                                    # macOS, if you touched the app
 ```
 
