@@ -426,11 +426,11 @@ dependencies = [
 
 [[package]]
 name = "ykvault-bridge"
-version = "0.1.0"
+version = "0.1.1"
 
 [[package]]
 name = "ykvault-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "ykvault-core",
  "ykvault-pcsc",
@@ -438,7 +438,7 @@ dependencies = [
 
 [[package]]
 name = "ykvault-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "aes",
  "chacha20poly1305",
@@ -455,7 +455,7 @@ dependencies = [
 
 [[package]]
 name = "ykvault-ffi"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chacha20poly1305",
  "hkdf",
@@ -468,7 +468,7 @@ dependencies = [
 
 [[package]]
 name = "ykvault-pcsc"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "ykvault-core",
  "zeroize",

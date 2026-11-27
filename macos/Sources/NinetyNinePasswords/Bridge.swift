@@ -13,7 +13,7 @@ final class BridgeHandler: BridgeDelegate {
     private var locked = true
     let server = BridgeServer()
 
-    var appVersion: String { Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.0" }
+    var appVersion: String { Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.1" }
 
     var isLocked: Bool {
         lock.lock()
