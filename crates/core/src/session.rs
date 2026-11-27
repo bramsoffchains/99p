@@ -428,14 +428,17 @@ impl<C: SmartCard> Session<C> {
         Ok(())
     }
 
-    /// Wipes every secret from memory.
+    /// Wipes every secret from memory and, if it was unlocked, clears the
+    /// card's PIN-verified status (best effort).
     pub fn lock(&mut self) {
-        self.state = None;
+        if self.state.take().is_some() {
+            let _ = self.piv.reset_pin_status();
+        }
     }
 
     /// Call from the PC/SC removal watcher.
     pub fn on_card_removed(&mut self) {
-        self.lock();
+        self.state = None;
     }
 
     pub fn is_unlocked(&self) -> bool {

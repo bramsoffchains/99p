@@ -214,7 +214,8 @@ zeroized on drop. macOS has no `mlockall`, so heap copies made by the system
 allocator cannot all be page-locked. The app SHOULD set `RLIMIT_CORE = 0`, and
 macOS encrypts swap. The session is wiped on: explicit lock, idle timeout
 (`settings.idle_lock_secs`), screen lock or sleep, and **card removal** (PC/SC
-watcher, §7.5).
+watcher, §7.5). Locking an unlocked session also sends VERIFY with P1 = `0xFF`
+(`00 20 FF 80`, no data) to clear the card's PIN-verified status, best effort.
 
 ## 6. Payload and schema
 
