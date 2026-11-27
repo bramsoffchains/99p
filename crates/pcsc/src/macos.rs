@@ -152,9 +152,12 @@ impl PcscCard {
 
     fn disconnect(&mut self) {
         if self.handle != 0 {
-            // Reset so the card forgets the management key authentication.
+            // Reset so the card forgets the management key authentication,
+            // unless this connection is already dead: a reset then would only
+            // hit whoever connected since (our own reopened session).
+            let how = if self.dead { sys::LEAVE_CARD } else { sys::RESET_CARD };
             // SAFETY: we own the handle.
-            unsafe { sys::SCardDisconnect(self.handle, sys::RESET_CARD) };
+            unsafe { sys::SCardDisconnect(self.handle, how) };
             self.handle = 0;
         }
     }
